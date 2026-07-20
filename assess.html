@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Self-check — Story Palace</title>
+<meta name="description" content="A two-minute check of how vivid your mental imagery is and which memory channels you naturally use.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='48' fill='%23b4531f'/><text x='50' y='70' font-size='60' text-anchor='middle' fill='white' font-family='Georgia'>1</text></svg>">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div id="header"></div>
+
+<main class="wrap">
+  <h1 style="padding-top:2rem">How do you think?</h1>
+  <p style="max-width:42em">Two minutes, eight questions. Part one gauges how
+  vivid your mental imagery is (inspired by the research questionnaire, the
+  VVIQ). Part two finds the memory channels you already lean on. Your answers
+  stay in this browser. <strong>This is a self-reflection tool, not a
+  diagnosis.</strong></p>
+
+  <form id="quiz">
+    <div class="card">
+      <h2>Part 1 · Close your eyes and try to bring each of these to mind</h2>
+      <p class="muted">Whatever happens is a fine answer — including nothing at all.</p>
+      <div id="vividness"></div>
+    </div>
+
+    <div class="card">
+      <h2>Part 2 · What do you naturally reach for?</h2>
+      <p class="muted">Pick the answer closest to what you actually do, not what sounds cleverest.</p>
+      <div id="strategy"></div>
+    </div>
+
+    <p class="toolbar">
+      <button type="submit" class="primary">See my profile</button>
+      <span id="quiz-warning" class="muted" role="status"></span>
+    </p>
+  </form>
+
+  <section id="results" hidden>
+    <h2>Your profile</h2>
+    <div class="card" id="results-imagery"></div>
+    <div class="card" id="results-channels"></div>
+    <div class="callout good" id="results-next"></div>
+  </section>
+</main>
+
+<div id="footer"></div>
+<script src="assets/palaces.js"></script>
+<script src="assets/app.js"></script>
+<script>
+"use strict";
+document.getElementById("header").outerHTML = renderHeader("assess.html");
+document.getElementById("footer").outerHTML = renderFooter();
+
+const VIVID_ITEMS = [
+    "The face of someone you see every day",
+    "The front door of the place you live",
+    "A sunrise slowly climbing over water",
+    "A bonfire — flames, sparks, and smoke",
+];
+
+const VIVID_SCALE = [
+    "No image at all — I only know I'm thinking about it",
+    "Dim and vague — a flicker at best",
+    "Moderately clear",
+    "Clear and fairly lively",
+    "As clear and lively as real seeing",
+];
+
+const STRATEGY_ITEMS = [
+    {
+        q: "You need to hold a phone number in mind for a minute. You…",
+        opts: [
+            ["verbal", "Repeat it out loud or in inner speech"],
+            ["sensorimotor", "Tap or type it out with your fingers"],
+            ["narrative", "Find a pattern or little logic in the digits"],
+            ["spatial", "Remember where the digits sit on the keypad"],
+        ],
+    },
+    {
+        q: "Someone asks for directions to your home. You…",
+        opts: [
+            ["verbal", "List the street names and turns in words"],
+            ["sensorimotor", "Feel the lefts and rights as body movements"],
+            ["narrative", "Tell it as a little journey — first this happens, then that"],
+            ["spatial", "Think of the layout from above, like a map"],
+        ],
+    },
+    {
+        q: "Recalling a get-together from last month, what comes back first?",
+        opts: [
+            ["verbal", "Who said what — the conversations"],
+            ["sensorimotor", "What you were doing and how it physically felt"],
+            ["narrative", "The chain of events — what led to what"],
+            ["spatial", "Where everyone and everything was placed"],
+        ],
+    },
+    {
+        q: "Learning a new recipe, you'd most likely…",
+        opts: [
+            ["verbal", "Say the steps to yourself until they stick"],
+            ["sensorimotor", "Walk through the motions with your hands once"],
+            ["narrative", "Remember the causal chain — this must happen before that"],
+            ["spatial", "Lay out the ingredients in order of use"],
+        ],
+    },
+];
+
+const CHANNEL_INFO = {
+    verbal: ["Verbal", "You think in words. Lean on spoken hooks: say each story beat and item out loud, and keep association sentences punchy enough to recite."],
+    sensorimotor: ["Sensorimotor", "You think by doing. The Body palace is built for you — touch each hook as you encode, and act out associations with your hands."],
+    narrative: ["Narrative & logic", "You think in sequences and consequences. The Journey palace, where every beat causes the next, will feel like home."],
+    spatial: ["Spatial", "You think in layouts and positions. Use hook numbers as positions on a route, and try building a custom palace from a real walk you know."],
+};
+
+function renderQuiz() {
+    document.getElementById("vividness").innerHTML = VIVID_ITEMS.map((item, i) => `
+      <fieldset style="border:none;padding:0;margin:1rem 0">
+        <legend style="font-weight:600">${i + 1}. ${item}</legend>
+        <div class="scale">
+          ${VIVID_SCALE.map((s, v) => `
+            <label>${s}<input type="radio" name="v${i}" value="${v + 1}" required></label>
+          `).join("")}
+        </div>
+      </fieldset>`).join("");
+
+    document.getElementById("strategy").innerHTML = STRATEGY_ITEMS.map((item, i) => `
+      <fieldset style="border:none;padding:0;margin:1rem 0">
+        <legend style="font-weight:600">${i + 5}. ${item.q}</legend>
+        <div class="scale">
+          ${item.opts.map(([key, text]) => `
+            <label>${text}<input type="radio" name="s${i}" value="${key}" required></label>
+          `).join("")}
+        </div>
+      </fieldset>`).join("");
+}
+
+function imageryBand(score) {
+    if (score <= 6) return {
+        name: "Aphantasia range",
+        text: `Your score of <strong>${score} / 20</strong> falls where people
+        who describe having no mind's eye typically land. If that matches your
+        experience, welcome — this entire site was designed for exactly how
+        you think. Nothing about your memory is broken: research shows verbal
+        memory, factual memory, and spatial accuracy are fully intact in
+        aphantasia, and imagery-free mnemonics work.`,
+    };
+    if (score <= 10) return {
+        name: "Dim imagery (hypophantasia range)",
+        text: `Your score of <strong>${score} / 20</strong> suggests faint,
+        unreliable imagery. Techniques that depend on vivid pictures will
+        underperform for you — story hooks built on sound, touch, and logic
+        should feel far more dependable.`,
+    };
+    if (score <= 16) return {
+        name: "Typical imagery",
+        text: `Your score of <strong>${score} / 20</strong> is in the typical
+        range. You can use visual techniques — but story-based hooks still
+        add sequence and logic that pure imagery lacks, so the palaces here
+        will work for you too.`,
+    };
+    return {
+        name: "Highly vivid imagery",
+        text: `Your score of <strong>${score} / 20</strong> is in the highly
+        vivid range (toward hyperphantasia). You're welcome here! Adding
+        narrative and multi-sensory hooks on top of your imagery is a
+        memory-athlete-grade combination.`,
+    };
+}
+
+document.getElementById("quiz").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const data = new FormData(form);
+
+    let vividScore = 0;
+    for (let i = 0; i < VIVID_ITEMS.length; i++) {
+        const v = data.get("v" + i);
+        if (v === null) { document.getElementById("quiz-warning").textContent = "Please answer every question."; return; }
+        vividScore += Number(v);
+    }
+    const tally = { verbal: 0, sensorimotor: 0, narrative: 0, spatial: 0 };
+    for (let i = 0; i < STRATEGY_ITEMS.length; i++) {
+        const s = data.get("s" + i);
+        if (s === null) { document.getElementById("quiz-warning").textContent = "Please answer every question."; return; }
+        tally[s]++;
+    }
+    document.getElementById("quiz-warning").textContent = "";
+
+    const band = imageryBand(vividScore);
+    const best = Math.max(...Object.values(tally));
+    const top = Object.keys(tally).filter((k) => tally[k] === best);
+
+    document.getElementById("results-imagery").innerHTML =
+        `<h3>Imagery: ${band.name}</h3><p>${band.text}</p>
+         <p class="muted" style="font-size:.85rem">Bands are adapted from how the
+         16-item VVIQ is interpreted in research (a score ≤ 23/80 is commonly
+         used for aphantasia). Four questions can only approximate it.</p>`;
+
+    document.getElementById("results-channels").innerHTML =
+        `<h3>Your strongest channel${top.length > 1 ? "s" : ""}: ${top.map((k) => CHANNEL_INFO[k][0]).join(" + ")}</h3>` +
+        top.map((k) => `<p>${CHANNEL_INFO[k][1]}</p>`).join("") +
+        `<p class="muted">Full tally — ${Object.entries(tally).map(([k, v]) => `${CHANNEL_INFO[k][0]}: ${v}`).join(" · ")}</p>`;
+
+    const rec = top.includes("sensorimotor") ? "The Body (10 hooks)"
+        : top.includes("narrative") ? "The Journey (25 hooks)"
+        : "The Day (25 hooks)";
+    document.getElementById("results-next").innerHTML =
+        `<strong>Suggested first palace: ${rec}.</strong>
+         <a href="palace.html">Open the Story Palaces</a> and inject your first
+         list — a 10-item grocery list is the classic warm-up.`;
+
+    const store = loadStore();
+    store.assessment = {
+        vividScore,
+        band: band.name,
+        channels: tally,
+        completedAt: new Date().toISOString(),
+    };
+    saveStore(store);
+
+    const results = document.getElementById("results");
+    results.hidden = false;
+    results.scrollIntoView({ behavior: "smooth" });
+});
+
+renderQuiz();
+</script>
+</body>
+</html>

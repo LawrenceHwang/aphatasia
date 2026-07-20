@@ -1,0 +1,14 @@
+{
+  "name": "story-palace",
+  "version": "1.0.0",
+  "description": "Story Palace — a memory toolkit for people with aphantasia. Static HTML/CSS/JS, no build step.",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "start": "npx --yes serve . -l 8643"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/<your-username>/<your-repo>.git"
+  }
+}

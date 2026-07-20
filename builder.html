@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Build your own — Story Palace</title>
+<meta name="description" content="Turn a routine, a walk, or a story of your own into a reusable Story Palace with numbered, non-visual hooks.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='48' fill='%23b4531f'/><text x='50' y='70' font-size='60' text-anchor='middle' fill='white' font-family='Georgia'>1</text></svg>">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div id="header"></div>
+
+<main class="wrap">
+  <h1 style="padding-top:2rem" id="page-title">Build your own palace</h1>
+  <p style="max-width:44em">The best custom palace is a sequence you already
+  know without trying: your commute, your gym routine, making your usual
+  dinner, a walk you've taken a hundred times. Write one story beat per hook.
+  <strong>Never describe how things look</strong> — describe what they sound
+  like, feel like, smell like, what you do, or what happens next because of it.</p>
+
+  <div class="card">
+    <label for="p-name">Palace name</label>
+    <input type="text" id="p-name" placeholder="e.g. My commute, Sunday pancakes, The gym circuit">
+
+    <label for="p-intro">Introduction (optional)</label>
+    <textarea id="p-intro" rows="2" placeholder="One or two sentences about why this sequence is unforgettable to you."></textarea>
+
+    <label for="p-scaffold">Starting scaffold</label>
+    <select id="p-scaffold">
+      <option value="blank">Blank — I'll write my own beats</option>
+      <option value="walk">A walk or route I know</option>
+      <option value="ritual">A routine or ritual (recipe, workout, ceremony)</option>
+      <option value="chain">A chain of consequences (each beat causes the next)</option>
+    </select>
+    <p class="muted" id="scaffold-tip" style="font-size:.9rem"></p>
+  </div>
+
+  <h2>Hooks <span class="chip" id="hook-count">0</span></h2>
+  <div class="card" id="hooks"></div>
+  <p class="toolbar">
+    <button id="add-hook">＋ Add hook</button>
+    <span class="spacer"></span>
+    <button class="primary" id="save">Save palace</button>
+    <span class="muted" id="save-msg" role="status"></span>
+  </p>
+
+  <div class="callout" style="max-width:44em">
+    <strong>Chain rule:</strong> every beat should connect to the next by
+    sequence (&ldquo;then&rdquo;) or cause (&ldquo;so&rdquo;). If you can ask
+    &ldquo;why did I move on?&rdquo; and the story answers, the chain will
+    recall itself.
+  </div>
+</main>
+
+<div id="footer"></div>
+<script src="assets/palaces.js"></script>
+<script src="assets/app.js"></script>
+<script>
+"use strict";
+document.getElementById("header").outerHTML = renderHeader("builder.html");
+document.getElementById("footer").outerHTML = renderFooter();
+
+const SCAFFOLD_TIPS = {
+    blank: "Start from nothing. Aim for 10–25 hooks in a strict, natural order.",
+    walk: "List the stops of a real route in walking order: front door, corner shop, the loud crossing, the bakery smell… Do the walk in your head with your feet, not your eyes.",
+    ritual: "List the steps in doing-order: fill the kettle, clatter the cups, the first hiss of steam… Your hands already know this sequence.",
+    chain: "Each hook should force the next: the letter makes you pack, packing needs boots, boots take you to the gate… Ask “so what happens?” after every beat.",
+};
+
+const TYPE_OPTIONS = Object.entries(HOOK_TYPES)
+    .map(([k, t]) => `<option value="${k}">${t.glyph} ${t.label}</option>`)
+    .join("");
+
+const hooksEl = document.getElementById("hooks");
+const params = new URLSearchParams(location.search);
+const editId = params.get("edit");
+
+function addHookRow(data = {}) {
+    const row = document.createElement("div");
+    row.className = "hookrow";
+    row.innerHTML = `
+      <span class="hooknum dim">·</span>
+      <div class="body">
+        <div class="toolbar" style="margin:0 0 .25rem">
+          <input type="text" class="h-label" placeholder="Hook word (e.g. kettle)"
+                 value="${escapeHtml(data.label || "")}" style="max-width:14rem">
+          <select class="h-type">${TYPE_OPTIONS}</select>
+          <span class="spacer"></span>
+          <button type="button" class="ghost h-up" title="Move up">↑</button>
+          <button type="button" class="ghost h-down" title="Move down">↓</button>
+          <button type="button" class="ghost h-del" title="Remove">✕</button>
+        </div>
+        <textarea class="h-beat" rows="2"
+          placeholder="One story sentence containing the hook word — sound, feel, smell, action, or cause.">${escapeHtml(data.beatText || "")}</textarea>
+      </div>`;
+    if (data.type) row.querySelector(".h-type").value = data.type;
+    row.querySelector(".h-del").onclick = () => { row.remove(); renumber(); };
+    row.querySelector(".h-up").onclick = () => {
+        if (row.previousElementSibling) hooksEl.insertBefore(row, row.previousElementSibling);
+        renumber();
+    };
+    row.querySelector(".h-down").onclick = () => {
+        if (row.nextElementSibling) hooksEl.insertBefore(row.nextElementSibling, row);
+        renumber();
+    };
+    hooksEl.appendChild(row);
+    renumber();
+    return row;
+}
+
+function renumber() {
+    const rows = hooksEl.querySelectorAll(".hookrow");
+    rows.forEach((r, i) => { r.querySelector(".hooknum").textContent = i + 1; });
+    document.getElementById("hook-count").textContent = rows.length;
+}
+
+document.getElementById("add-hook").onclick = () => {
+    const row = addHookRow();
+    row.querySelector(".h-label").focus();
+};
+
+document.getElementById("p-scaffold").onchange = (e) => {
+    document.getElementById("scaffold-tip").textContent = SCAFFOLD_TIPS[e.target.value];
+};
+document.getElementById("scaffold-tip").textContent = SCAFFOLD_TIPS.blank;
+
+/* Beat text → safe HTML with the hook word wrapped in <em>. */
+function beatToHtml(beatText, label) {
+    let html = escapeHtml(beatText.trim());
+    const safeLabel = escapeHtml(label.trim());
+    if (safeLabel) {
+        const i = html.toLowerCase().indexOf(safeLabel.toLowerCase());
+        if (i !== -1) {
+            html = html.slice(0, i) + "<em>" + html.slice(i, i + safeLabel.length) + "</em>" + html.slice(i + safeLabel.length);
+        }
+    }
+    return html;
+}
+
+/* Reverse: stored beat HTML → plain text for editing. */
+function beatToText(beatHtml) {
+    const div = document.createElement("div");
+    div.innerHTML = beatHtml;
+    return div.textContent;
+}
+
+document.getElementById("save").onclick = () => {
+    const msg = document.getElementById("save-msg");
+    const name = document.getElementById("p-name").value.trim();
+    if (!name) { msg.textContent = "Give your palace a name."; return; }
+
+    const rows = [...hooksEl.querySelectorAll(".hookrow")];
+    const hooks = [];
+    for (let i = 0; i < rows.length; i++) {
+        const label = rows[i].querySelector(".h-label").value.trim();
+        const beatText = rows[i].querySelector(".h-beat").value.trim();
+        const type = rows[i].querySelector(".h-type").value;
+        if (!label || !beatText) { msg.textContent = `Hook ${i + 1} needs both a hook word and a story beat.`; return; }
+        if (!beatText.toLowerCase().includes(label.toLowerCase())) {
+            msg.textContent = `Hook ${i + 1}: the beat should contain the hook word “${label}”.`;
+            return;
+        }
+        hooks.push({ n: i + 1, label, type, beat: beatToHtml(beatText, label) });
+    }
+    if (hooks.length < 3) { msg.textContent = "Add at least 3 hooks."; return; }
+
+    const store = loadStore();
+    const intro = document.getElementById("p-intro").value.trim();
+    if (editId) {
+        const existing = store.customPalaces.find((p) => p.id === editId);
+        if (existing) {
+            Object.assign(existing, { name, intro, hooks });
+        }
+    } else {
+        store.customPalaces.push({ id: "custom-" + uid(), name, intro, hooks });
+    }
+    saveStore(store);
+    location.href = "palace.html";
+};
+
+/* Edit mode or fresh start */
+if (editId) {
+    const palace = (loadStore().customPalaces || []).find((p) => p.id === editId);
+    if (palace) {
+        document.getElementById("page-title").textContent = "Edit palace";
+        document.getElementById("p-name").value = palace.name;
+        document.getElementById("p-intro").value = palace.intro || "";
+        palace.hooks.forEach((h) =>
+            addHookRow({ label: h.label, type: h.type, beatText: beatToText(h.beat) }));
+    } else {
+        addHookRow(); addHookRow(); addHookRow();
+    }
+} else {
+    addHookRow(); addHookRow(); addHookRow();
+}
+</script>
+</body>
+</html>

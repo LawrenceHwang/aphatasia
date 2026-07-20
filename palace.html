@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Story Palaces — Story Palace</title>
+<meta name="description" content="Pre-built story palaces: inject the things you want to remember into numbered hooks, then practice the recall walk.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='48' fill='%23b4531f'/><text x='50' y='70' font-size='60' text-anchor='middle' fill='white' font-family='Georgia'>1</text></svg>">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div id="header"></div>
+<main class="wrap" id="main"></main>
+<div id="footer"></div>
+
+<script src="assets/palaces.js"></script>
+<script src="assets/app.js"></script>
+<script>
+"use strict";
+document.getElementById("header").outerHTML = renderHeader("palace.html");
+document.getElementById("footer").outerHTML = renderFooter();
+
+const main = document.getElementById("main");
+const params = new URLSearchParams(location.search);
+
+/* ---------- View: palace picker ---------- */
+
+function viewPicker() {
+    const store = loadStore();
+    const cards = allPalaces(store).map((p) => {
+        const lists = listsForPalace(store, p.id);
+        return `
+        <div class="card">
+          <h3>${escapeHtml(p.name)} ${p.custom ? '<span class="chip accent">custom</span>' : ""}</h3>
+          <p class="muted">${escapeHtml(p.tagline)}</p>
+          <p class="muted" style="font-size:.85rem">${lists.length} list${lists.length === 1 ? "" : "s"} stored</p>
+          <a class="btn primary" href="palace.html?p=${encodeURIComponent(p.id)}">Enter</a>
+          ${p.custom ? `<a class="btn" href="builder.html?edit=${encodeURIComponent(p.id)}">Edit</a>` : ""}
+        </div>`;
+    }).join("");
+
+    main.innerHTML = `
+      <h1 style="padding-top:2rem">Choose a palace</h1>
+      <p style="max-width:42em">Each palace is a fixed story route with numbered
+      hooks. Enter one, read its story once, then attach the things you want to
+      remember to its hooks.</p>
+      <div class="grid">${cards}
+        <div class="card" style="display:flex;flex-direction:column;justify-content:center;align-items:flex-start">
+          <h3>Build your own</h3>
+          <p class="muted">Turn a routine, a walk, or a story of yours into a palace.</p>
+          <a class="btn" href="builder.html">Open the builder</a>
+        </div>
+      </div>
+      <h2>Your data</h2>
+      <p class="toolbar">
+        <button id="export-json">Download backup (JSON)</button>
+        <button id="import-json">Restore from backup</button>
+        <input type="file" id="import-file" accept="application/json" class="sr-only">
+        <span class="muted" id="data-status" role="status"></span>
+      </p>`;
+
+    document.getElementById("export-json").onclick = () => exportAllJson(loadStore());
+    const fileInput = document.getElementById("import-file");
+    document.getElementById("import-json").onclick = () => fileInput.click();
+    fileInput.onchange = () => {
+        if (!fileInput.files[0]) return;
+        importAllJson(fileInput.files[0], (err) => {
+            document.getElementById("data-status").textContent =
+                err ? "Import failed: " + err.message : "Backup restored.";
+            if (!err) setTimeout(() => location.reload(), 600);
+        });
+    };
+}
+
+/* ---------- View: palace detail (story + lists) ---------- */
+
+function viewPalace(palace) {
+    const store = loadStore();
+    const lists = listsForPalace(store, palace.id);
+
+    const storyRows = palace.hooks.map((h) => `
+      <div class="hookrow">
+        <span class="hooknum">${h.n}</span>
+        <div class="body">
+          <span class="hookname">${escapeHtml(h.label)}</span> ${hookTypeChip(h.type)}
+          <p class="story" style="margin-bottom:0">${h.beat}</p>
+        </div>
+      </div>`).join("");
+
+    const listRows = lists.map((l) => {
+        const filled = palace.hooks.filter((h) => l.entries[h.n] && l.entries[h.n].item).length;
+        return `
+        <div class="hookrow">
+          <div class="body">
+            <span class="hookname">${escapeHtml(l.name)}</span>
+            <span class="chip">${filled}/${palace.hooks.length} hooks filled</span>
+          </div>
+          <a class="btn primary" href="palace.html?p=${encodeURIComponent(palace.id)}&l=${encodeURIComponent(l.id)}">Open</a>
+          <button class="bad" data-del="${escapeHtml(l.id)}">Delete</button>
+        </div>`;
+    }).join("");
+
+    main.innerHTML = `
+      <p style="padding-top:1.5rem"><a href="palace.html">← All palaces</a></p>
+      <h1>${escapeHtml(palace.name)}</h1>
+      <p class="muted">${escapeHtml(palace.tagline)}</p>
+      <p style="max-width:44em">${escapeHtml(palace.intro || "")}</p>
+
+      <h2>Your lists in this palace</h2>
+      <div class="card">
+        ${listRows || '<p class="muted" style="margin:0">No lists yet — every list is an independent set of items riding on the same hooks.</p>'}
+      </div>
+      <p class="toolbar">
+        <input type="text" id="new-list-name" placeholder="Name a new list (e.g. Groceries, Speech points)" style="max-width:22rem">
+        <button class="primary" id="new-list">＋ Create list</button>
+      </p>
+
+      <h2>The story route <span class="chip">${palace.hooks.length} hooks</span></h2>
+      <p class="muted" style="max-width:44em">Read it aloud once, slowly. If a beat
+      names a body part or an action, do it for real — the motion is the anchor.</p>
+      <div class="card">${storyRows}</div>`;
+
+    document.getElementById("new-list").onclick = () => {
+        const nameInput = document.getElementById("new-list-name");
+        const name = nameInput.value.trim();
+        if (!name) { nameInput.focus(); return; }
+        const s = loadStore();
+        const list = {
+            id: uid(), palaceId: palace.id, name: name.trim(),
+            entries: {}, stats: { perHook: {}, sessions: 0 },
+            createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+        };
+        s.lists.push(list);
+        saveStore(s);
+        location.search = `?p=${encodeURIComponent(palace.id)}&l=${encodeURIComponent(list.id)}`;
+    };
+
+    main.querySelectorAll("button[data-del]").forEach((btn) => {
+        btn.onclick = () => {
+            const s = loadStore();
+            const l = s.lists.find((x) => x.id === btn.dataset.del);
+            if (!l) return;
+            if (!confirm(`Delete the list “${l.name}”? This cannot be undone.`)) return;
+            s.lists = s.lists.filter((x) => x.id !== btn.dataset.del);
+            saveStore(s);
+            viewPalace(palace);
+        };
+    });
+}
+
+/* ---------- View: list editor (injection UI) ---------- */
+
+const PROMPTS = {
+    sound: "What sound does your item make at this beat?",
+    smell: "What does your item smell or taste like here?",
+    touch: "How does your item feel here — texture, weight, temperature?",
+    motion: "What do you do with your item at this beat?",
+    logic: "What does your item cause to happen at this beat?",
+};
+
+function viewList(palace, listId) {
+    const store = loadStore();
+    const list = store.lists.find((l) => l.id === listId);
+    if (!list) { location.search = `?p=${encodeURIComponent(palace.id)}`; return; }
+
+    const rows = palace.hooks.map((h) => {
+        const entry = list.entries[h.n] || { item: "", assoc: "" };
+        return `
+        <div class="hookrow">
+          <span class="hooknum">${h.n}</span>
+          <div class="body">
+            <span class="hookname">${escapeHtml(h.label)}</span> ${hookTypeChip(h.type)}
+            <p class="story">${h.beat}</p>
+            <label for="item-${h.n}">Item to remember</label>
+            <input type="text" id="item-${h.n}" data-n="${h.n}" data-field="item"
+                   value="${escapeHtml(entry.item)}" placeholder="e.g. olive oil">
+            <label for="assoc-${h.n}">Association — connect it to the <em>${escapeHtml(h.label)}</em></label>
+            <textarea id="assoc-${h.n}" data-n="${h.n}" data-field="assoc" rows="2"
+                      placeholder="${escapeHtml(PROMPTS[h.type] || "Connect your item to this beat in one sentence.")}">${escapeHtml(entry.assoc)}</textarea>
+          </div>
+        </div>`;
+    }).join("");
+
+    main.innerHTML = `
+      <p style="padding-top:1.5rem"><a href="palace.html?p=${encodeURIComponent(palace.id)}">← ${escapeHtml(palace.name)}</a></p>
+      <h1>${escapeHtml(list.name)}</h1>
+      <p class="muted">Attach one item per hook. Don't chase pictures — write a
+      sentence that connects the item to the beat's sound, feel, smell, action,
+      or consequence. Odd, physical, and causal connections stick best.</p>
+      <p class="toolbar">
+        <button class="primary" id="go-practice">▶ Practice recall</button>
+        <button id="export-anki">Export for Anki (CSV)</button>
+        <span class="spacer"></span>
+        <span class="muted" id="save-status" role="status">Saved</span>
+      </p>
+      <div class="card">${rows}</div>
+      <p class="toolbar">
+        <button class="primary" id="go-practice-2">▶ Practice recall</button>
+      </p>
+      <section id="practice" hidden></section>`;
+
+    /* Debounced autosave. Edits are queued in `pending` and flushed together,
+       so quick edits across several fields are never lost. */
+    let saveTimer = null;
+    const pending = new Map();
+    function flushPending() {
+        clearTimeout(saveTimer);
+        if (pending.size === 0) return;
+        const s = loadStore();
+        const l = s.lists.find((x) => x.id === listId);
+        if (!l) return;
+        for (const [key, value] of pending) {
+            const [n, field] = key.split(":");
+            l.entries[n] = l.entries[n] || { item: "", assoc: "" };
+            l.entries[n][field] = value;
+        }
+        pending.clear();
+        l.updatedAt = new Date().toISOString();
+        saveStore(s);
+        document.getElementById("save-status").textContent = "Saved";
+    }
+    main.querySelectorAll("input[data-n], textarea[data-n]").forEach((el) => {
+        el.addEventListener("input", () => {
+            pending.set(el.dataset.n + ":" + el.dataset.field, el.value);
+            document.getElementById("save-status").textContent = "Saving…";
+            clearTimeout(saveTimer);
+            saveTimer = setTimeout(flushPending, 400);
+        });
+    });
+    window.addEventListener("beforeunload", flushPending);
+
+    document.getElementById("export-anki").onclick = () => {
+        flushPending();
+        const s = loadStore();
+        const l = s.lists.find((x) => x.id === listId);
+        exportListAsAnkiCsv(palace, l);
+    };
+    const startPractice = () => { flushPending(); beginPractice(palace, listId); };
+    document.getElementById("go-practice").onclick = startPractice;
+    document.getElementById("go-practice-2").onclick = startPractice;
+}
+
+/* ---------- Practice ---------- */
+
+const MODES = {
+    forward: "Forward — walk the story start to finish",
+    reverse: "Reverse — walk it backwards",
+    randomstart: "Random start — drop in at a random hook, continue forward",
+    shuffle: "Jump quiz — “what's at hook N?” in random order",
+};
+
+function beginPractice(palace, listId) {
+    const store = loadStore();
+    const list = store.lists.find((l) => l.id === listId);
+    const filled = palace.hooks.filter((h) => list.entries[h.n] && list.entries[h.n].item.trim());
+    const section = document.getElementById("practice");
+    section.hidden = false;
+
+    if (filled.length < 2) {
+        section.innerHTML = `<div class="callout">Fill at least two hooks with items before practicing.</div>`;
+        section.scrollIntoView({ behavior: "smooth" });
+        return;
+    }
+
+    section.innerHTML = `
+      <h2>Practice</h2>
+      <div class="card">
+        <p style="margin-top:0">Choose a walk. You'll get the story beat first —
+        the hook is the gateway. Say your item out loud <em>before</em> revealing.</p>
+        <div class="tabs" id="mode-tabs">
+          ${Object.entries(MODES).map(([k, label]) =>
+              `<button type="button" data-mode="${k}">${label}</button>`).join("")}
+        </div>
+      </div>
+      <div id="stage"></div>`;
+    section.scrollIntoView({ behavior: "smooth" });
+
+    section.querySelectorAll("#mode-tabs button").forEach((b) => {
+        b.onclick = () => runSession(palace, listId, b.dataset.mode);
+    });
+}
+
+function runSession(palace, listId, mode) {
+    const store = loadStore();
+    const list = store.lists.find((l) => l.id === listId);
+    let order = palace.hooks.filter((h) => list.entries[h.n] && list.entries[h.n].item.trim());
+
+    if (mode === "reverse") order = order.slice().reverse();
+    if (mode === "randomstart") {
+        const start = Math.floor(Math.random() * order.length);
+        order = order.slice(start).concat(order.slice(0, start));
+    }
+    if (mode === "shuffle") {
+        order = order.slice();
+        for (let i = order.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [order[i], order[j]] = [order[j], order[i]];
+        }
+    }
+
+    const stage = document.getElementById("stage");
+    document.querySelectorAll("#mode-tabs button").forEach((b) =>
+        b.setAttribute("aria-pressed", String(b.dataset.mode === mode)));
+
+    let idx = 0;
+    const results = [];
+
+    function renderStep() {
+        if (idx >= order.length) return renderSummary();
+        const h = order[idx];
+        const entry = list.entries[h.n];
+        stage.innerHTML = `
+          <div class="card practice-stage">
+            <div class="progressbar"><div style="width:${(idx / order.length) * 100}%"></div></div>
+            <p class="muted" style="margin:0">Hook ${h.n} of ${palace.hooks.length} · ${idx + 1}/${order.length} this walk</p>
+            <p class="beat"><span class="hooknum">${h.n}</span><br>${h.beat}</p>
+            <p><strong>${escapeHtml(h.label)}</strong> ${hookTypeChip(h.type)}</p>
+            <p class="muted">What did you place here? Say it out loud.</p>
+            <div id="answer-zone">
+              <button class="primary" id="reveal">Reveal</button>
+            </div>
+          </div>`;
+        document.getElementById("reveal").onclick = () => {
+            document.getElementById("answer-zone").innerHTML = `
+              <div class="reveal-box">
+                <strong>${escapeHtml(entry.item)}</strong>
+                ${entry.assoc ? `<br><span class="muted">${escapeHtml(entry.assoc)}</span>` : ""}
+              </div>
+              <button class="good" id="got">✓ Got it</button>
+              <button class="bad" id="missed">✗ Missed</button>`;
+            document.getElementById("got").onclick = () => grade(h, true);
+            document.getElementById("missed").onclick = () => grade(h, false);
+        };
+    }
+
+    function grade(h, ok) {
+        results.push({ n: h.n, label: h.label, ok });
+        idx++;
+        renderStep();
+    }
+
+    function renderSummary() {
+        const okCount = results.filter((r) => r.ok).length;
+        const missed = results.filter((r) => !r.ok);
+
+        const s = loadStore();
+        const l = s.lists.find((x) => x.id === listId);
+        l.stats.sessions = (l.stats.sessions || 0) + 1;
+        for (const r of results) {
+            const ph = l.stats.perHook[r.n] || { ok: 0, total: 0 };
+            ph.total++;
+            if (r.ok) ph.ok++;
+            l.stats.perHook[r.n] = ph;
+        }
+        saveStore(s);
+
+        const weakRows = Object.entries(l.stats.perHook)
+            .map(([n, ph]) => ({ n: Number(n), pct: ph.total ? Math.round((ph.ok / ph.total) * 100) : 0, ...ph }))
+            .sort((a, b) => a.pct - b.pct)
+            .slice(0, 5);
+
+        stage.innerHTML = `
+          <div class="card practice-stage">
+            <div class="progressbar"><div style="width:100%"></div></div>
+            <h3 style="margin-top:0">${okCount} / ${results.length} recalled</h3>
+            ${missed.length
+                ? `<p>Rework the missed hooks — make the association weirder, louder, or more physical:</p>
+                   <p>${missed.map((m) => `<span class="chip">${m.n} · ${escapeHtml(m.label)}</span>`).join(" ")}</p>`
+                : `<p class="callout good" style="text-align:left">A perfect walk. Try the reverse or jump-quiz mode to lock it in.</p>`}
+            <table class="stats" style="margin:1rem auto;max-width:24rem">
+              <thead><tr><th>Hook</th><th>All-time accuracy</th></tr></thead>
+              <tbody>
+                ${weakRows.map((w) => `<tr><td>${w.n}</td><td>${w.pct}% (${w.ok}/${w.total})</td></tr>`).join("")}
+              </tbody>
+            </table>
+            <p class="muted" style="font-size:.85rem">${l.stats.sessions} practice walk${l.stats.sessions === 1 ? "" : "s"} on this list so far.</p>
+            <button class="primary" id="again">Walk again</button>
+          </div>`;
+        document.getElementById("again").onclick = () => beginPractice(palace, listId);
+    }
+
+    renderStep();
+}
+
+/* ---------- Router ---------- */
+
+const palaceId = params.get("p");
+const listId = params.get("l");
+const currentPalace = palaceId ? getPalace(loadStore(), palaceId) : null;
+
+if (currentPalace && listId) viewList(currentPalace, listId);
+else if (currentPalace) viewPalace(currentPalace);
+else viewPicker();
+</script>
+</body>
+</html>
