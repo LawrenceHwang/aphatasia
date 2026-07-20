@@ -175,8 +175,13 @@ function viewList(palace, listId) {
             <input type="text" id="item-${h.n}" data-n="${h.n}" data-field="item"
                    value="${escapeHtml(entry.item)}" placeholder="e.g. olive oil">
             <label for="assoc-${h.n}">Association — connect it to the <em>${escapeHtml(h.label)}</em></label>
+            <div class="frames" role="group" aria-label="Sentence starters">
+              ${LINK_FRAMES.map((f, fi) =>
+                `<button type="button" class="chip-btn" data-frame="${fi}" data-fn="${h.n}">${f.label}</button>`).join("")}
+            </div>
             <textarea id="assoc-${h.n}" data-n="${h.n}" data-field="assoc" rows="2"
                       placeholder="${escapeHtml(PROMPTS[h.type] || "Connect your item to this beat in one sentence.")}">${escapeHtml(entry.assoc)}</textarea>
+            <div class="coach" id="coach-${h.n}" role="status"></div>
           </div>
         </div>`;
     }).join("");
@@ -229,6 +234,40 @@ function viewList(palace, listId) {
     });
     window.addEventListener("beforeunload", flushPending);
 
+    /* Live link-quality coach per hook */
+    function updateCoach(n) {
+        const hook = palace.hooks.find((h) => String(h.n) === String(n));
+        const coach = document.getElementById("coach-" + n);
+        if (!hook || !coach) return;
+        const item = document.getElementById("item-" + n).value.trim();
+        const assoc = document.getElementById("assoc-" + n).value;
+        const tips = linkCoach(assoc, item, hook.label);
+        if (tips === null) { coach.textContent = ""; coach.classList.remove("ok"); return; }
+        if (tips.length === 0) { coach.textContent = "✓ Strong link."; coach.classList.add("ok"); }
+        else { coach.textContent = tips.join(" "); coach.classList.remove("ok"); }
+    }
+    main.querySelectorAll("input[data-n], textarea[data-n]").forEach((el) => {
+        el.addEventListener("input", () => updateCoach(el.dataset.n));
+    });
+    palace.hooks.forEach((h) => updateCoach(h.n));
+
+    /* Sentence-frame starters: fill an empty association box and focus it */
+    main.querySelectorAll("button[data-frame]").forEach((btn) => {
+        btn.onclick = () => {
+            const n = btn.dataset.fn;
+            const hook = palace.hooks.find((h) => String(h.n) === String(n));
+            const assocEl = document.getElementById("assoc-" + n);
+            if (assocEl.value.trim()) { assocEl.focus(); return; }
+            const item = document.getElementById("item-" + n).value.trim() || "item";
+            assocEl.value = LINK_FRAMES[btn.dataset.frame].text
+                .replaceAll("{hook}", hook.label)
+                .replaceAll("{item}", item);
+            assocEl.dispatchEvent(new Event("input", { bubbles: true }));
+            assocEl.focus();
+            assocEl.setSelectionRange(assocEl.value.length, assocEl.value.length);
+        };
+    });
+
     document.getElementById("export-anki").onclick = () => {
         flushPending();
         const s = loadStore();
@@ -265,8 +304,14 @@ function beginPractice(palace, listId) {
     section.innerHTML = `
       <h2>Practice</h2>
       <div class="card">
-        <p style="margin-top:0">Choose a walk. You'll get the story beat first —
+        <p style="margin-top:0">Choose a walk. You'll get the cue first —
         the hook is the gateway. Say your item out loud <em>before</em> revealing.</p>
+        <label for="cue-level">Cue level — fade the scaffolding as you improve</label>
+        <select id="cue-level" style="max-width:24rem">
+          <option value="full">Full story beat (easiest)</option>
+          <option value="hook">Hook word only</option>
+          <option value="number">Number only (hardest)</option>
+        </select>
         <div class="tabs" id="mode-tabs">
           ${Object.entries(MODES).map(([k, label]) =>
               `<button type="button" data-mode="${k}">${label}</button>`).join("")}
@@ -275,12 +320,19 @@ function beginPractice(palace, listId) {
       <div id="stage"></div>`;
     section.scrollIntoView({ behavior: "smooth" });
 
+    const cueSelect = section.querySelector("#cue-level");
+    cueSelect.value = list.stats.cueLevel || "full";
     section.querySelectorAll("#mode-tabs button").forEach((b) => {
-        b.onclick = () => runSession(palace, listId, b.dataset.mode);
+        b.onclick = () => {
+            const s = loadStore();
+            const l = s.lists.find((x) => x.id === listId);
+            if (l) { l.stats.cueLevel = cueSelect.value; saveStore(s); }
+            runSession(palace, listId, b.dataset.mode, cueSelect.value);
+        };
     });
 }
 
-function runSession(palace, listId, mode) {
+function runSession(palace, listId, mode, cueLevel = "full") {
     const store = loadStore();
     const list = store.lists.find((l) => l.id === listId);
     let order = palace.hooks.filter((h) => list.entries[h.n] && list.entries[h.n].item.trim());
@@ -309,12 +361,16 @@ function runSession(palace, listId, mode) {
         if (idx >= order.length) return renderSummary();
         const h = order[idx];
         const entry = list.entries[h.n];
+        const cue =
+            cueLevel === "number" ? `<p class="beat"><span class="hooknum">${h.n}</span></p>`
+            : cueLevel === "hook" ? `<p class="beat"><span class="hooknum">${h.n}</span><br><strong>${escapeHtml(h.label)}</strong></p>`
+            : `<p class="beat"><span class="hooknum">${h.n}</span><br>${h.beat}</p>
+               <p><strong>${escapeHtml(h.label)}</strong> ${hookTypeChip(h.type)}</p>`;
         stage.innerHTML = `
           <div class="card practice-stage">
             <div class="progressbar"><div style="width:${(idx / order.length) * 100}%"></div></div>
             <p class="muted" style="margin:0">Hook ${h.n} of ${palace.hooks.length} · ${idx + 1}/${order.length} this walk</p>
-            <p class="beat"><span class="hooknum">${h.n}</span><br>${h.beat}</p>
-            <p><strong>${escapeHtml(h.label)}</strong> ${hookTypeChip(h.type)}</p>
+            ${cue}
             <p class="muted">What did you place here? Say it out loud.</p>
             <div id="answer-zone">
               <button class="primary" id="reveal">Reveal</button>
@@ -325,6 +381,7 @@ function runSession(palace, listId, mode) {
               <div class="reveal-box">
                 <strong>${escapeHtml(entry.item)}</strong>
                 ${entry.assoc ? `<br><span class="muted">${escapeHtml(entry.assoc)}</span>` : ""}
+                ${cueLevel !== "full" ? `<br><span class="muted" style="font-style:italic">${h.beat}</span>` : ""}
               </div>
               <button class="good" id="got">✓ Got it</button>
               <button class="bad" id="missed">✗ Missed</button>`;

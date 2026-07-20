@@ -5,7 +5,7 @@
 const STORE_KEY = "story-palace-v1";
 
 function defaultStore() {
-    return { version: 1, customPalaces: [], lists: [], assessment: null };
+    return { version: 1, customPalaces: [], lists: [], assessment: null, gym: { pairs: [] } };
 }
 
 function loadStore() {
@@ -110,6 +110,90 @@ function importAllJson(file, onDone) {
     reader.readAsText(file);
 }
 
+/* ---- Link-quality coach ----
+   Rule-based feedback on an association sentence. A strong link names both
+   ends and pushes one into the other with action or cause — never a static
+   "X is next to Y". Returns an array of tips; empty array = strong link. */
+
+const CAUSAL_PATTERN = new RegExp(
+    "\\b(because|so|since|therefore|until|which|forc\\w*|mak\\w*|made|caus\\w*|" +
+    "trigger\\w*|driv\\w*|drove|knock\\w*|lead\\w*|led|push\\w*|pull\\w*|drag\\w*|" +
+    "slam\\w*|crash\\w*|crack\\w*|smash\\w*|spill\\w*|break\\w*|broke|burst\\w*|" +
+    "shov\\w*|throw\\w*|threw|drop\\w*|fell|fall\\w*|hit\\w*|slap\\w*|bang\\w*|" +
+    "pour\\w*|burn\\w*|squeeze\\w*|grab\\w*|tear\\w*|tore|bit\\w*|kick\\w*|" +
+    "explod\\w*|melt\\w*|freez\\w*|froze|sting\\w*|stung|shak\\w*|shook|rattl\\w*|" +
+    "ring\\w*|rang|buzz\\w*|echo\\w*|roll\\w*|" +
+    "into|onto|through|against|" +
+    "must|cannot|can't|has to|have to|need\\w*)\\b", "i");
+
+function containsWordOf(sentence, phrase) {
+    const words = String(phrase || "").toLowerCase().split(/\s+/).filter((w) => w.length > 2);
+    if (words.length === 0) return true;
+    const low = sentence.toLowerCase();
+    // Word-boundary match on the word or its singular stem, allowing suffixes
+    // ("eggs" matches "egg cracks"; "ear" does not match "near").
+    return words.some((w) => {
+        const stem = w.replace(/(es|s)$/, "");
+        const base = stem.length > 2 ? stem : w;
+        const re = new RegExp("\\b" + base.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\w*", "i");
+        return re.test(low);
+    });
+}
+
+function linkCoach(sentence, itemWord, hookWord) {
+    const s = String(sentence || "").trim();
+    if (!s) return null; // nothing to judge yet
+    const tips = [];
+    if (itemWord && !containsWordOf(s, itemWord)) {
+        tips.push(`Name the item — put “${itemWord}” in the sentence.`);
+    }
+    if (hookWord && !containsWordOf(s, hookWord)) {
+        tips.push(`Name the hook — put “${hookWord}” in the sentence.`);
+    }
+    if (!CAUSAL_PATTERN.test(s)) {
+        tips.push("Add a push: because, so, forces, makes, crashes into…");
+    }
+    if (s.split(/\s+/).length < 5) {
+        tips.push("Give it one more beat — what happens next?");
+    }
+    return tips;
+}
+
+/* One-tap starter frames for the association box. {item}/{hook} get substituted. */
+const LINK_FRAMES = [
+    { label: "Because…", text: "Because of the {hook}, the {item} must " },
+    { label: "Crashes into…", text: "The {item} crashes into the {hook}, so " },
+    { label: "Without…", text: "Without the {item}, the {hook} can't " },
+    { label: "Makes…", text: "The {hook} makes the {item} " },
+];
+
+/* Concrete, causal-friendly nouns for the Link Gym. */
+const GYM_WORDS = [
+    "anchor", "anvil", "avalanche", "balloon", "barrel", "bell", "bicycle",
+    "blanket", "bonfire", "bucket", "cactus", "candle", "chain", "chandelier",
+    "chisel", "compass", "corkscrew", "dart", "dice", "dominoes", "doorbell",
+    "drum", "eggshell", "engine", "envelope", "fan", "feather", "firework",
+    "fountain", "glove", "gong", "hammer", "hammock", "harp", "helmet",
+    "hosepipe", "icicle", "iron", "jackhammer", "jar", "jug", "kettle",
+    "keyhole", "kite", "knot", "ladder", "lantern", "lawnmower", "lever",
+    "lighthouse", "magnet", "matchstick", "megaphone", "mirror", "mop",
+    "mousetrap", "nail", "needle", "nutcracker", "oar", "overcoat", "padlock",
+    "parachute", "pillow", "pinwheel", "pulley", "pumpkin", "quicksand",
+    "quilt", "raft", "rake", "rocket", "rope", "saddle", "sailboat",
+    "scissors", "screwdriver", "shovel", "siren", "snowball", "sponge",
+    "spring", "stapler", "teapot", "telescope", "tent", "toaster", "tractor",
+    "trumpet", "turbine", "umbrella", "unicycle", "vacuum", "vinegar",
+    "violin", "volcano", "waffle", "wheelbarrow", "whistle", "windmill",
+    "xylophone", "yo-yo", "zipper",
+];
+
+function dealGymPair() {
+    const i = Math.floor(Math.random() * GYM_WORDS.length);
+    let j = Math.floor(Math.random() * (GYM_WORDS.length - 1));
+    if (j >= i) j++;
+    return [GYM_WORDS[i], GYM_WORDS[j]];
+}
+
 /* ---- Shared page chrome ---- */
 
 function renderHeader(current) {
@@ -117,6 +201,7 @@ function renderHeader(current) {
         ["index.html", "Home"],
         ["assess.html", "Self-check"],
         ["palace.html", "Story Palaces"],
+        ["gym.html", "Link Gym"],
         ["builder.html", "Build your own"],
     ];
     const nav = links

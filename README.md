@@ -38,8 +38,18 @@ list — the hook is the gateway that brings the memory back.
   Multiple independent lists per palace; practice modes (forward, reverse,
   random start, jump quiz) with self-grading and per-hook accuracy; Anki CSV
   export; JSON backup/restore.
+- [`gym.html`](gym.html) — the **Link Gym**: trains the core mnemonic skill of
+  forging causal links fast. Deals two random words; you write one sentence
+  where the first causes/forces/crashes into the second, with a live
+  rule-based link-quality coach; then quizzes you on your own links (weakest
+  first, both directions), exploiting the generation and testing effects.
 - [`builder.html`](builder.html) — build custom palaces from a route, routine,
   or consequence chain of your own.
+
+The link-quality coach and one-tap sentence frames also appear in the palace
+injection UI, and practice supports **progressive cue fading** (full story
+beat → hook word only → number only) so the scaffolding can be removed as
+recall strengthens.
 
 ## Getting started
 

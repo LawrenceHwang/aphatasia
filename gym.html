@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Link Gym — Story Palace</title>
+<meta name="description" content="Train the core mnemonic skill: forging fast causal links between any two things — no visualization required.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='48' fill='%23b4531f'/><text x='50' y='70' font-size='60' text-anchor='middle' fill='white' font-family='Georgia'>1</text></svg>">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div id="header"></div>
+
+<main class="wrap">
+  <h1 style="padding-top:2rem">Link Gym</h1>
+  <p style="max-width:44em">The real mnemonic skill isn't the palace — it's
+  <strong>forging a link fast</strong>. Research on the <i>generation
+  effect</i> is clear: connections you invent yourself stick far better than
+  ones you're given. The gym deals you two random things; you write one
+  sentence where the first <strong>causes, forces, or crashes into</strong>
+  the second. Then it quizzes you on your own links.</p>
+
+  <p class="toolbar">
+    <span class="chip" id="stat-forged">0 links forged</span>
+    <span class="chip" id="stat-accuracy">no quizzes yet</span>
+  </p>
+
+  <div class="tabs">
+    <button type="button" id="tab-forge" aria-pressed="true">Forge links</button>
+    <button type="button" id="tab-quiz" aria-pressed="false">Quiz me</button>
+  </div>
+
+  <section id="forge-view">
+    <div class="card">
+      <div class="gym-pair">
+        <span id="word-a">—</span>
+        <span class="arrow">⟶</span>
+        <span id="word-b">—</span>
+      </div>
+      <p class="muted" style="text-align:center;margin-top:0">Make the first one
+      <em>do something</em> to the second. Absurd and physical beats sensible and polite.</p>
+      <label for="forge-sentence">Your link</label>
+      <textarea id="forge-sentence" rows="2"
+        placeholder="e.g. The anchor drops straight through the kettle, so tea sprays everywhere."></textarea>
+      <div class="coach" id="forge-coach" role="status"></div>
+      <p class="toolbar">
+        <button class="primary" id="save-link">Save link</button>
+        <button id="redeal">Deal new words</button>
+        <span class="muted" id="forge-msg" role="status"></span>
+      </p>
+    </div>
+
+    <h2>Your recent links</h2>
+    <div class="card" id="recent-links"></div>
+  </section>
+
+  <section id="quiz-view" hidden>
+    <div id="quiz-stage"></div>
+  </section>
+</main>
+
+<div id="footer"></div>
+<script src="assets/palaces.js"></script>
+<script src="assets/app.js"></script>
+<script>
+"use strict";
+document.getElementById("header").outerHTML = renderHeader("gym.html");
+document.getElementById("footer").outerHTML = renderFooter();
+
+let pair = dealGymPair();
+
+function renderPair() {
+    document.getElementById("word-a").textContent = pair[0];
+    document.getElementById("word-b").textContent = pair[1];
+    document.getElementById("forge-sentence").value = "";
+    document.getElementById("forge-coach").textContent = "";
+    document.getElementById("forge-coach").classList.remove("ok");
+}
+
+function renderStats() {
+    const gym = loadStore().gym;
+    document.getElementById("stat-forged").textContent =
+        `${gym.pairs.length} link${gym.pairs.length === 1 ? "" : "s"} forged`;
+    let ok = 0, total = 0;
+    for (const p of gym.pairs) { ok += p.stats.ok; total += p.stats.total; }
+    document.getElementById("stat-accuracy").textContent = total
+        ? `quiz accuracy ${Math.round((ok / total) * 100)}% (${ok}/${total})`
+        : "no quizzes yet";
+}
+
+function renderRecent() {
+    const gym = loadStore().gym;
+    const recent = gym.pairs.slice(-10).reverse();
+    document.getElementById("recent-links").innerHTML = recent.length
+        ? recent.map((p) => `
+          <div class="hookrow">
+            <div class="body">
+              <span class="hookname">${escapeHtml(p.a)} ⟶ ${escapeHtml(p.b)}</span>
+              <p class="story" style="margin-bottom:0">${escapeHtml(p.sentence)}</p>
+            </div>
+            <span class="chip">${p.stats.total ? Math.round((p.stats.ok / p.stats.total) * 100) + "%" : "new"}</span>
+            <button class="ghost" data-del="${escapeHtml(p.id)}" title="Delete link">✕</button>
+          </div>`).join("")
+        : '<p class="muted" style="margin:0">No links yet — forge your first one above.</p>';
+    document.querySelectorAll("#recent-links button[data-del]").forEach((btn) => {
+        btn.onclick = () => {
+            const s = loadStore();
+            s.gym.pairs = s.gym.pairs.filter((p) => p.id !== btn.dataset.del);
+            saveStore(s);
+            renderStats(); renderRecent();
+        };
+    });
+}
+
+/* Live coach while typing */
+document.getElementById("forge-sentence").addEventListener("input", (e) => {
+    const coach = document.getElementById("forge-coach");
+    const tips = linkCoach(e.target.value, pair[0], pair[1]);
+    if (tips === null) { coach.textContent = ""; coach.classList.remove("ok"); return; }
+    if (tips.length === 0) { coach.textContent = "✓ Strong link."; coach.classList.add("ok"); }
+    else { coach.textContent = tips.join(" "); coach.classList.remove("ok"); }
+});
+
+document.getElementById("redeal").onclick = () => { pair = dealGymPair(); renderPair(); };
+
+document.getElementById("save-link").onclick = () => {
+    const sentence = document.getElementById("forge-sentence").value.trim();
+    const msg = document.getElementById("forge-msg");
+    if (!sentence) { msg.textContent = "Write the link first."; return; }
+    const s = loadStore();
+    s.gym.pairs.push({
+        id: uid(), a: pair[0], b: pair[1], sentence,
+        stats: { ok: 0, total: 0 }, createdAt: new Date().toISOString(),
+    });
+    saveStore(s);
+    msg.textContent = `Saved “${pair[0]} ⟶ ${pair[1]}”. New words dealt.`;
+    pair = dealGymPair();
+    renderPair(); renderStats(); renderRecent();
+};
+
+/* ---- Quiz ---- */
+
+function startQuiz() {
+    const stage = document.getElementById("quiz-stage");
+    const gym = loadStore().gym;
+    if (gym.pairs.length < 3) {
+        stage.innerHTML = '<div class="callout">Forge at least 3 links first — then the gym can quiz you on them.</div>';
+        return;
+    }
+    // Weakest links first, capped at 12 per round, then shuffled.
+    const chosen = gym.pairs
+        .slice()
+        .sort((x, y) => {
+            const ax = x.stats.total ? x.stats.ok / x.stats.total : -1;
+            const ay = y.stats.total ? y.stats.ok / y.stats.total : -1;
+            return ax - ay;
+        })
+        .slice(0, 12);
+    for (let i = chosen.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [chosen[i], chosen[j]] = [chosen[j], chosen[i]];
+    }
+
+    let idx = 0;
+    let okCount = 0;
+
+    function step() {
+        if (idx >= chosen.length) return summary();
+        const p = chosen[idx];
+        const forward = Math.random() < 0.5;
+        const shown = forward ? p.a : p.b;
+        const question = forward
+            ? `<strong>${escapeHtml(shown)}</strong> — what did it cause?`
+            : `<strong>${escapeHtml(shown)}</strong> — what led to it?`;
+        stage.innerHTML = `
+          <div class="card practice-stage">
+            <div class="progressbar"><div style="width:${(idx / chosen.length) * 100}%"></div></div>
+            <p class="muted" style="margin:0">${idx + 1} / ${chosen.length}</p>
+            <p class="beat">${question}</p>
+            <p class="muted">Replay your sentence in your head, then check.</p>
+            <div id="answer-zone"><button class="primary" id="reveal">Reveal</button></div>
+          </div>`;
+        document.getElementById("reveal").onclick = () => {
+            document.getElementById("answer-zone").innerHTML = `
+              <div class="reveal-box">
+                <strong>${escapeHtml(p.a)} ⟶ ${escapeHtml(p.b)}</strong><br>
+                <span class="muted">${escapeHtml(p.sentence)}</span>
+              </div>
+              <button class="good" id="got">✓ Got it</button>
+              <button class="bad" id="missed">✗ Missed</button>`;
+            const grade = (ok) => {
+                const s = loadStore();
+                const sp = s.gym.pairs.find((x) => x.id === p.id);
+                if (sp) { sp.stats.total++; if (ok) sp.stats.ok++; saveStore(s); }
+                if (ok) okCount++;
+                idx++;
+                step();
+            };
+            document.getElementById("got").onclick = () => grade(true);
+            document.getElementById("missed").onclick = () => grade(false);
+        };
+    }
+
+    function summary() {
+        renderStats();
+        stage.innerHTML = `
+          <div class="card practice-stage">
+            <div class="progressbar"><div style="width:100%"></div></div>
+            <h3 style="margin-top:0">${okCount} / ${chosen.length} recalled</h3>
+            <p class="muted">Missed links come back first next round. A link that
+            fails twice usually needs to be rebuilt weirder — delete it in the
+            Forge tab and write a better one.</p>
+            <button class="primary" id="again">Another round</button>
+            <button id="back-forge">Back to forging</button>
+          </div>`;
+        document.getElementById("again").onclick = startQuiz;
+        document.getElementById("back-forge").onclick = () => switchTab(false);
+    }
+
+    step();
+}
+
+/* ---- Tabs ---- */
+
+function switchTab(quiz) {
+    document.getElementById("forge-view").hidden = quiz;
+    document.getElementById("quiz-view").hidden = !quiz;
+    document.getElementById("tab-forge").setAttribute("aria-pressed", String(!quiz));
+    document.getElementById("tab-quiz").setAttribute("aria-pressed", String(quiz));
+    if (quiz) startQuiz();
+}
+document.getElementById("tab-forge").onclick = () => switchTab(false);
+document.getElementById("tab-quiz").onclick = () => switchTab(true);
+
+renderPair(); renderStats(); renderRecent();
+</script>
+</body>
+</html>

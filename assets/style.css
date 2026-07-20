@@ -275,6 +275,42 @@ label { font-weight: 600; font-size: 0.9rem; display: block; margin: 0.75rem 0 0
 }
 .scale label:has(input:focus-visible) { outline: 3px solid var(--focus); outline-offset: 2px; }
 
+/* Link-quality coach feedback */
+.coach {
+    font-size: 0.85rem;
+    margin-top: 0.3rem;
+    color: var(--ink-soft);
+    min-height: 1.2em;
+}
+.coach.ok { color: var(--good); font-weight: 600; }
+
+/* Chip-sized action buttons (sentence frames) */
+button.chip-btn {
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 0.1rem 0.6rem;
+    border-radius: 99px;
+    border: 1px solid var(--line);
+    background: var(--bg-sunken);
+    color: var(--ink-soft);
+}
+button.chip-btn:hover { color: var(--accent); border-color: var(--accent); }
+.frames { display: flex; gap: 0.35rem; flex-wrap: wrap; margin: 0.35rem 0 0.15rem; }
+
+/* Link Gym */
+.gym-pair {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    font-family: var(--serif);
+    font-size: 1.6rem;
+    font-weight: 700;
+    padding: 1rem 0 0.5rem;
+    flex-wrap: wrap;
+}
+.gym-pair .arrow { color: var(--accent); font-size: 1.2rem; }
+
 .callout {
     border-left: 4px solid var(--accent);
     background: var(--accent-soft);
