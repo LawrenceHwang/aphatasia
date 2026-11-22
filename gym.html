@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Link Gym — Story Palace</title>
-<meta name="description" content="Train the core mnemonic skill: forging fast causal links between any two things — no visualization required.">
+<meta name="description" content="Train the core non-visual mnemonic skill: forging fast causal, action, and rule links between concrete objects, abstract concepts, and 3-step chains.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='48' fill='%23b4531f'/><text x='50' y='70' font-size='60' text-anchor='middle' fill='white' font-family='Georgia'>1</text></svg>">
 <link rel="stylesheet" href="assets/style.css">
 </head>
@@ -14,14 +14,15 @@
 <main class="wrap">
   <h1 style="padding-top:2rem">Link Gym</h1>
   <p style="max-width:44em">The real mnemonic skill isn't the palace — it's
-  <strong>forging a link fast</strong>. Research on the <i>generation
-  effect</i> is clear: connections you invent yourself stick far better than
-  ones you're given. The gym deals you two random things; you write one
-  sentence where the first <strong>causes, forces, or crashes into</strong>
-  the second. Then it quizzes you on your own links.</p>
+  <strong>forging an unbreakable non-visual link fast</strong>. Research on the
+  <i>generation effect</i> and <i>testing effect</i> is clear: connections you
+  invent and retrieve yourself stick far better than ones you read. Train across
+  three progressive workouts: <strong>concrete pairs</strong>, <strong>abstract
+  study concepts</strong>, and <strong>3-step causal chains</strong>.</p>
 
   <p class="toolbar">
     <span class="chip" id="stat-forged">0 links forged</span>
+    <span class="chip" id="stat-due">0 due</span>
     <span class="chip" id="stat-accuracy">no quizzes yet</span>
   </p>
 
@@ -32,17 +33,32 @@
 
   <section id="forge-view">
     <div class="card">
-      <div class="gym-pair">
-        <span id="word-a">—</span>
-        <span class="arrow">⟶</span>
-        <span id="word-b">—</span>
+      <div class="tabs" id="workout-tabs" style="margin-top:0">
+        <button type="button" data-w="concrete" aria-pressed="true">Concrete ⟶ Concrete</button>
+        <button type="button" data-w="abstract" aria-pressed="false">Abstract concept ⟶ Concrete</button>
+        <button type="button" data-w="chain" aria-pressed="false">3-Step Causal Chain</button>
       </div>
-      <p class="muted" style="text-align:center;margin-top:0">Make the first one
-      <em>do something</em> to the second. Absurd and physical beats sensible and polite.</p>
-      <label for="forge-sentence">Your link</label>
-      <textarea id="forge-sentence" rows="2"
-        placeholder="e.g. The anchor drops straight through the kettle, so tea sprays everywhere."></textarea>
-      <div class="coach" id="forge-coach" role="status"></div>
+
+      <div class="gym-pair" id="gym-prompt"></div>
+      <p class="muted" id="workout-hint" style="text-align:center;margin-top:0"></p>
+
+      <div id="pair-inputs">
+        <label for="forge-sentence">Your non-visual link</label>
+        <div class="frames" id="gym-frames"></div>
+        <textarea id="forge-sentence" rows="2"
+          placeholder="e.g. Because the anchor drops straight through the kettle, boiling tea sprays everywhere."></textarea>
+        <div class="coach" id="forge-coach" role="status"></div>
+      </div>
+
+      <div id="chain-inputs" hidden>
+        <label for="chain-1">Link 1: <span id="ch-lbl-1"></span></label>
+        <textarea id="chain-1" rows="2" placeholder="How does the first word cause, force, or crash into the second?"></textarea>
+        <div class="coach" id="chain-coach-1" role="status"></div>
+        <label for="chain-2">Link 2: <span id="ch-lbl-2"></span></label>
+        <textarea id="chain-2" rows="2" placeholder="How does that second word immediately force or trigger the third?"></textarea>
+        <div class="coach" id="chain-coach-2" role="status"></div>
+      </div>
+
       <p class="toolbar">
         <button class="primary" id="save-link">Save link</button>
         <button id="redeal">Deal new words</button>
@@ -67,20 +83,68 @@
 document.getElementById("header").outerHTML = renderHeader("gym.html");
 document.getElementById("footer").outerHTML = renderFooter();
 
-let pair = dealGymPair();
+let workout = "concrete"; // "concrete" | "abstract" | "chain"
+let dealt = dealGymPair(workout);
 
-function renderPair() {
-    document.getElementById("word-a").textContent = pair[0];
-    document.getElementById("word-b").textContent = pair[1];
-    document.getElementById("forge-sentence").value = "";
-    document.getElementById("forge-coach").textContent = "";
-    document.getElementById("forge-coach").classList.remove("ok");
+const WORKOUT_HINTS = {
+    concrete: "Make the first physically act on, force, or sabotage the second — skip passive appearance.",
+    abstract: "Translate the abstract idea into a plain rule, wordplay, or physical force acting on the concrete object (essential for studying without imagery).",
+    chain: "Chain 3 beats in two sentences: A forces B, then B immediately forces C. This trains the exact engine behind Story Palaces.",
+};
+
+function renderWorkout() {
+    const promptEl = document.getElementById("gym-prompt");
+    document.getElementById("workout-hint").textContent = WORKOUT_HINTS[workout];
+    document.getElementById("pair-inputs").hidden = workout === "chain";
+    document.getElementById("chain-inputs").hidden = workout !== "chain";
+
+    if (workout === "chain") {
+        promptEl.innerHTML = `
+          <span>${escapeHtml(dealt[0])}</span>
+          <span class="arrow">⟶</span>
+          <span>${escapeHtml(dealt[1])}</span>
+          <span class="arrow">⟶</span>
+          <span>${escapeHtml(dealt[2])}</span>`;
+        document.getElementById("ch-lbl-1").textContent = `${dealt[0]} ⟶ ${dealt[1]}`;
+        document.getElementById("ch-lbl-2").textContent = `${dealt[1]} ⟶ ${dealt[2]}`;
+        document.getElementById("chain-1").value = "";
+        document.getElementById("chain-2").value = "";
+        renderCoachFeedback(document.getElementById("chain-coach-1"), null);
+        renderCoachFeedback(document.getElementById("chain-coach-2"), null);
+    } else {
+        promptEl.innerHTML = `
+          <span>${escapeHtml(dealt[0])}</span>
+          <span class="arrow">⟶</span>
+          <span>${escapeHtml(dealt[1])}</span>`;
+        document.getElementById("forge-sentence").value = "";
+        renderCoachFeedback(document.getElementById("forge-coach"), null);
+
+        const frames = framesForMode(effectiveEncodingMode(loadStore()));
+        const framesEl = document.getElementById("gym-frames");
+        framesEl.innerHTML = frames.map((f, i) =>
+            `<button type="button" class="chip-btn" data-gf="${i}">${escapeHtml(f.label)}</button>`).join("");
+        framesEl.querySelectorAll("button").forEach((b) => {
+            b.onclick = () => {
+                const ta = document.getElementById("forge-sentence");
+                if (ta.value.trim()) { ta.focus(); return; }
+                ta.value = frames[Number(b.dataset.gf)].text
+                    .replaceAll("{hook}", dealt[0])
+                    .replaceAll("{item}", dealt[1]);
+                ta.dispatchEvent(new Event("input", { bubbles: true }));
+                ta.focus();
+            };
+        });
+    }
 }
 
 function renderStats() {
     const gym = loadStore().gym;
     document.getElementById("stat-forged").textContent =
         `${gym.pairs.length} link${gym.pairs.length === 1 ? "" : "s"} forged`;
+    const due = gym.pairs.filter((p) => isSrsDue(p.stats)).length;
+    const dueEl = document.getElementById("stat-due");
+    dueEl.textContent = `${due} due for review`;
+    dueEl.className = due > 0 ? "chip warn" : "chip";
     let ok = 0, total = 0;
     for (const p of gym.pairs) { ok += p.stats.ok; total += p.stats.total; }
     document.getElementById("stat-accuracy").textContent = total
@@ -90,15 +154,16 @@ function renderStats() {
 
 function renderRecent() {
     const gym = loadStore().gym;
-    const recent = gym.pairs.slice(-10).reverse();
+    const recent = gym.pairs.slice(-12).reverse();
     document.getElementById("recent-links").innerHTML = recent.length
         ? recent.map((p) => `
           <div class="hookrow">
             <div class="body">
               <span class="hookname">${escapeHtml(p.a)} ⟶ ${escapeHtml(p.b)}</span>
+              ${p.mode && p.mode !== "concrete" ? `<span class="chip accent">${escapeHtml(p.mode)}</span>` : ""}
               <p class="story" style="margin-bottom:0">${escapeHtml(p.sentence)}</p>
             </div>
-            <span class="chip">${p.stats.total ? Math.round((p.stats.ok / p.stats.total) * 100) + "%" : "new"}</span>
+            <span class="chip ${isSrsDue(p.stats) ? "warn" : "good"}">${p.stats.total ? Math.round((p.stats.ok / p.stats.total) * 100) + "% · " + formatNextDue(p.stats) : "new"}</span>
             <button class="ghost" data-del="${escapeHtml(p.id)}" title="Delete link">✕</button>
           </div>`).join("")
         : '<p class="muted" style="margin:0">No links yet — forge your first one above.</p>';
@@ -112,33 +177,58 @@ function renderRecent() {
     });
 }
 
-/* Live coach while typing */
+/* Live coaching */
 document.getElementById("forge-sentence").addEventListener("input", (e) => {
-    const coach = document.getElementById("forge-coach");
-    const tips = linkCoach(e.target.value, pair[0], pair[1]);
-    if (tips === null) { coach.textContent = ""; coach.classList.remove("ok"); return; }
-    if (tips.length === 0) { coach.textContent = "✓ Strong link."; coach.classList.add("ok"); }
-    else { coach.textContent = tips.join(" "); coach.classList.remove("ok"); }
+    renderCoachFeedback(document.getElementById("forge-coach"), analyzeLink(e.target.value, dealt[1], dealt[0]));
+});
+document.getElementById("chain-1").addEventListener("input", (e) => {
+    renderCoachFeedback(document.getElementById("chain-coach-1"), analyzeLink(e.target.value, dealt[1], dealt[0]));
+});
+document.getElementById("chain-2").addEventListener("input", (e) => {
+    renderCoachFeedback(document.getElementById("chain-coach-2"), analyzeLink(e.target.value, dealt[2], dealt[1]));
 });
 
-document.getElementById("redeal").onclick = () => { pair = dealGymPair(); renderPair(); };
+document.querySelectorAll("#workout-tabs button").forEach((btn) => {
+    btn.onclick = () => {
+        workout = btn.dataset.w;
+        document.querySelectorAll("#workout-tabs button").forEach((b) =>
+            b.setAttribute("aria-pressed", String(b === btn)));
+        dealt = dealGymPair(workout);
+        renderWorkout();
+    };
+});
+
+document.getElementById("redeal").onclick = () => { dealt = dealGymPair(workout); renderWorkout(); };
 
 document.getElementById("save-link").onclick = () => {
-    const sentence = document.getElementById("forge-sentence").value.trim();
     const msg = document.getElementById("forge-msg");
-    if (!sentence) { msg.textContent = "Write the link first."; return; }
     const s = loadStore();
-    s.gym.pairs.push({
-        id: uid(), a: pair[0], b: pair[1], sentence,
-        stats: { ok: 0, total: 0 }, createdAt: new Date().toISOString(),
-    });
-    saveStore(s);
-    msg.textContent = `Saved “${pair[0]} ⟶ ${pair[1]}”. New words dealt.`;
-    pair = dealGymPair();
-    renderPair(); renderStats(); renderRecent();
+    if (workout === "chain") {
+        const s1 = document.getElementById("chain-1").value.trim();
+        const s2 = document.getElementById("chain-2").value.trim();
+        if (!s1 || !s2) { msg.textContent = "Write both steps of the chain first."; return; }
+        const now = new Date().toISOString();
+        s.gym.pairs.push(
+            { id: uid(), a: dealt[0], b: dealt[1], sentence: s1, mode: "chain", stats: { ok: 0, total: 0 }, createdAt: now },
+            { id: uid(), a: dealt[1], b: dealt[2], sentence: s2, mode: "chain", stats: { ok: 0, total: 0 }, createdAt: now }
+        );
+        saveStore(s);
+        msg.textContent = `Saved chain “${dealt[0]} ⟶ ${dealt[1]} ⟶ ${dealt[2]}” (2 links). New chain dealt.`;
+    } else {
+        const sentence = document.getElementById("forge-sentence").value.trim();
+        if (!sentence) { msg.textContent = "Write the link first."; return; }
+        s.gym.pairs.push({
+            id: uid(), a: dealt[0], b: dealt[1], sentence, mode: workout,
+            stats: { ok: 0, total: 0 }, createdAt: new Date().toISOString(),
+        });
+        saveStore(s);
+        msg.textContent = `Saved “${dealt[0]} ⟶ ${dealt[1]}”. New words dealt.`;
+    }
+    dealt = dealGymPair(workout);
+    renderWorkout(); renderStats(); renderRecent();
 };
 
-/* ---- Quiz ---- */
+/* ---- Spaced Bidirectional Quiz + Inline Re-forge ---- */
 
 function startQuiz() {
     const stage = document.getElementById("quiz-stage");
@@ -147,10 +237,12 @@ function startQuiz() {
         stage.innerHTML = '<div class="callout">Forge at least 3 links first — then the gym can quiz you on them.</div>';
         return;
     }
-    // Weakest links first, capped at 12 per round, then shuffled.
     const chosen = gym.pairs
         .slice()
         .sort((x, y) => {
+            const dx = isSrsDue(x.stats) ? 0 : 1;
+            const dy = isSrsDue(y.stats) ? 0 : 1;
+            if (dx !== dy) return dx - dy;
             const ax = x.stats.total ? x.stats.ok / x.stats.total : -1;
             const ay = y.stats.total ? y.stats.ok / y.stats.total : -1;
             return ax - ay;
@@ -163,6 +255,7 @@ function startQuiz() {
 
     let idx = 0;
     let okCount = 0;
+    const missedPairs = [];
 
     function step() {
         if (idx >= chosen.length) return summary();
@@ -170,14 +263,14 @@ function startQuiz() {
         const forward = Math.random() < 0.5;
         const shown = forward ? p.a : p.b;
         const question = forward
-            ? `<strong>${escapeHtml(shown)}</strong> — what did it cause?`
-            : `<strong>${escapeHtml(shown)}</strong> — what led to it?`;
+            ? `<strong>${escapeHtml(shown)}</strong> — what did it cause or connect to?`
+            : `<strong>${escapeHtml(shown)}</strong> — what triggered or led to it?`;
         stage.innerHTML = `
           <div class="card practice-stage">
             <div class="progressbar"><div style="width:${(idx / chosen.length) * 100}%"></div></div>
-            <p class="muted" style="margin:0">${idx + 1} / ${chosen.length}</p>
+            <p class="muted" style="margin:0">${idx + 1} / ${chosen.length} ${p.mode && p.mode !== "concrete" ? `· ${escapeHtml(p.mode)}` : ""}</p>
             <p class="beat">${question}</p>
-            <p class="muted">Replay your sentence in your head, then check.</p>
+            <p class="muted">Say your sentence aloud before revealing.</p>
             <div id="answer-zone"><button class="primary" id="reveal">Reveal</button></div>
           </div>`;
         document.getElementById("reveal").onclick = () => {
@@ -186,33 +279,70 @@ function startQuiz() {
                 <strong>${escapeHtml(p.a)} ⟶ ${escapeHtml(p.b)}</strong><br>
                 <span class="muted">${escapeHtml(p.sentence)}</span>
               </div>
-              <button class="good" id="got">✓ Got it</button>
-              <button class="bad" id="missed">✗ Missed</button>`;
-            const grade = (ok) => {
+              <div class="toolbar" style="justify-content:center">
+                <button class="bad" id="g-miss">✗ Missed</button>
+                <button class="warn" id="g-hard">~ Hard</button>
+                <button class="good" id="g-good">✓ Got it</button>
+              </div>`;
+            const grade = (rating) => {
                 const s = loadStore();
                 const sp = s.gym.pairs.find((x) => x.id === p.id);
-                if (sp) { sp.stats.total++; if (ok) sp.stats.ok++; saveStore(s); }
-                if (ok) okCount++;
+                if (sp) { sp.stats = updateSrsStats(sp.stats, rating); saveStore(s); }
+                if (rating !== "miss") okCount++;
+                else missedPairs.push(p);
                 idx++;
                 step();
             };
-            document.getElementById("got").onclick = () => grade(true);
-            document.getElementById("missed").onclick = () => grade(false);
+            document.getElementById("g-miss").onclick = () => grade("miss");
+            document.getElementById("g-hard").onclick = () => grade("hard");
+            document.getElementById("g-good").onclick = () => grade("good");
         };
     }
 
     function summary() {
-        renderStats();
+        renderStats(); renderRecent();
+        const reworkHtml = missedPairs.length ? `
+          <div style="margin:1rem 0">
+            <p><strong>Re-forge missed links right here:</strong> weak links stick once you make them more causal, physical, or absurd.</p>
+            ${missedPairs.map((p) => `
+              <details class="rework-item" open>
+                <summary>${escapeHtml(p.a)} ⟶ ${escapeHtml(p.b)}</summary>
+                <textarea rows="2" class="gym-rework" data-pid="${escapeHtml(p.id)}" style="margin-top:.5rem">${escapeHtml(p.sentence)}</textarea>
+                <div class="coach" id="grc-${escapeHtml(p.id)}"></div>
+                <div class="toolbar" style="margin:.4rem 0 0">
+                  <button type="button" class="chip-btn save-gr" data-pid="${escapeHtml(p.id)}">Save upgraded link</button>
+                  <span class="muted" id="grm-${escapeHtml(p.id)}" style="font-size:.82rem"></span>
+                </div>
+              </details>`).join("")}
+          </div>` : "";
+
         stage.innerHTML = `
           <div class="card practice-stage">
             <div class="progressbar"><div style="width:100%"></div></div>
             <h3 style="margin-top:0">${okCount} / ${chosen.length} recalled</h3>
-            <p class="muted">Missed links come back first next round. A link that
-            fails twice usually needs to be rebuilt weirder — delete it in the
-            Forge tab and write a better one.</p>
-            <button class="primary" id="again">Another round</button>
-            <button id="back-forge">Back to forging</button>
+            ${!missedPairs.length ? '<p class="callout good" style="text-align:left">Every link held! Spaced intervals have been pushed out.</p>' : ""}
+            ${reworkHtml}
+            <div class="toolbar" style="justify-content:center">
+              <button class="primary" id="again">Another round</button>
+              <button id="back-forge">Back to forging</button>
+            </div>
           </div>`;
+
+        stage.querySelectorAll(".gym-rework").forEach((ta) => {
+            const p = missedPairs.find((x) => x.id === ta.dataset.pid);
+            const coach = document.getElementById("grc-" + p.id);
+            renderCoachFeedback(coach, analyzeLink(ta.value, p.b, p.a));
+            ta.addEventListener("input", () => renderCoachFeedback(coach, analyzeLink(ta.value, p.b, p.a)));
+        });
+        stage.querySelectorAll(".save-gr").forEach((btn) => {
+            btn.onclick = () => {
+                const ta = stage.querySelector(`.gym-rework[data-pid="${btn.dataset.pid}"]`);
+                const s = loadStore();
+                const sp = s.gym.pairs.find((x) => x.id === btn.dataset.pid);
+                if (sp) { sp.sentence = ta.value.trim(); saveStore(s); renderRecent(); }
+                document.getElementById("grm-" + btn.dataset.pid).textContent = "Saved!";
+            };
+        });
         document.getElementById("again").onclick = startQuiz;
         document.getElementById("back-forge").onclick = () => switchTab(false);
     }
@@ -232,7 +362,7 @@ function switchTab(quiz) {
 document.getElementById("tab-forge").onclick = () => switchTab(false);
 document.getElementById("tab-quiz").onclick = () => switchTab(true);
 
-renderPair(); renderStats(); renderRecent();
+renderWorkout(); renderStats(); renderRecent();
 </script>
 </body>
 </html>

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Build your own — Story Palace</title>
-<meta name="description" content="Turn a routine, a walk, or a story of your own into a reusable Story Palace with numbered, non-visual hooks.">
+<meta name="description" content="Turn your home, commute, daily ritual, or physical desk Lukasa board into a reusable non-visual Story Palace with live beat coaching.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='48' fill='%23b4531f'/><text x='50' y='70' font-size='60' text-anchor='middle' fill='white' font-family='Georgia'>1</text></svg>">
 <link rel="stylesheet" href="assets/style.css">
 </head>
@@ -13,43 +13,51 @@
 
 <main class="wrap">
   <h1 style="padding-top:2rem" id="page-title">Build your own palace</h1>
-  <p style="max-width:44em">The best custom palace is a sequence you already
-  know without trying: your commute, your gym routine, making your usual
-  dinner, a walk you've taken a hundred times. Write one story beat per hook.
-  <strong>Never describe how things look</strong> — describe what they sound
-  like, feel like, smell like, what you do, or what happens next because of it.</p>
+  <p style="max-width:44em">The strongest custom palace is a sequence your
+  body or habits already know automatically: your home in the dark, your
+  commute, making coffee, or 8 touchable objects across your desk (a physical
+  <em>lukasa</em>). <strong>Never describe how things look</strong> — anchor
+  each stop with position, a physical action, a sound, a texture, or a
+  cause-and-effect turn.</p>
 
   <div class="card">
     <label for="p-name">Palace name</label>
-    <input type="text" id="p-name" placeholder="e.g. My commute, Sunday pancakes, The gym circuit">
+    <input type="text" id="p-name" placeholder="e.g. My home in the dark, Desk Lukasa, Morning coffee ritual">
 
     <label for="p-intro">Introduction (optional)</label>
     <textarea id="p-intro" rows="2" placeholder="One or two sentences about why this sequence is unforgettable to you."></textarea>
 
-    <label for="p-scaffold">Starting scaffold</label>
-    <select id="p-scaffold">
-      <option value="blank">Blank — I'll write my own beats</option>
-      <option value="walk">A walk or route I know</option>
-      <option value="ritual">A routine or ritual (recipe, workout, ceremony)</option>
-      <option value="chain">A chain of consequences (each beat causes the next)</option>
-    </select>
-    <p class="muted" id="scaffold-tip" style="font-size:.9rem"></p>
+    <label for="p-scaffold">Starting scaffold or editable template</label>
+    <div class="toolbar" style="margin:.25rem 0 0">
+      <select id="p-scaffold" style="flex:1;min-width:14rem">
+        <option value="blank">Blank — I'll write my own beats</option>
+        <option value="home">Template · My Home (8 blindfolded spatial stops)</option>
+        <option value="lukasa">Template · Desk Lukasa (8 touchable objects left-to-right)</option>
+        <option value="walk">Template · Daily Commute / Walk (6 route stops)</option>
+        <option value="ritual">Template · Cooking / Morning Ritual (6 action steps)</option>
+        <option value="chain">Template · Consequence Chain (6 causal beats)</option>
+      </select>
+      <button type="button" id="load-template">Load template hooks</button>
+    </div>
+    <p class="muted" id="scaffold-tip" style="font-size:.9rem;margin-bottom:0"></p>
   </div>
 
   <h2>Hooks <span class="chip" id="hook-count">0</span></h2>
+  <p class="muted" style="margin-top:0">A live non-visual coach checks every beat for the hook word, catches accidental visual descriptions, and checks that consecutive beats chain cleanly.</p>
   <div class="card" id="hooks"></div>
   <p class="toolbar">
     <button id="add-hook">＋ Add hook</button>
     <span class="spacer"></span>
+    <button class="bad" id="delete-palace" hidden>Delete palace</button>
     <button class="primary" id="save">Save palace</button>
     <span class="muted" id="save-msg" role="status"></span>
   </p>
 
   <div class="callout" style="max-width:44em">
-    <strong>Chain rule:</strong> every beat should connect to the next by
-    sequence (&ldquo;then&rdquo;) or cause (&ldquo;so&rdquo;). If you can ask
-    &ldquo;why did I move on?&rdquo; and the story answers, the chain will
-    recall itself.
+    <strong>Chain &amp; Enactment rules:</strong> connect every beat to the next
+    by spatial position (&ldquo;past the door&rdquo;), sequence (&ldquo;then&rdquo;),
+    or cause (&ldquo;so&rdquo;). Add an optional physical gesture (&ldquo;Do it&rdquo;)
+    to harness the Enactment Effect even with zero internal imagery.
   </div>
 </main>
 
@@ -62,10 +70,79 @@ document.getElementById("header").outerHTML = renderHeader("builder.html");
 document.getElementById("footer").outerHTML = renderFooter();
 
 const SCAFFOLD_TIPS = {
-    blank: "Start from nothing. Aim for 10–25 hooks in a strict, natural order.",
-    walk: "List the stops of a real route in walking order: front door, corner shop, the loud crossing, the bakery smell… Do the walk in your head with your feet, not your eyes.",
-    ritual: "List the steps in doing-order: fill the kettle, clatter the cups, the first hiss of steam… Your hands already know this sequence.",
-    chain: "Each hook should force the next: the letter makes you pack, packing needs boots, boots take you to the gate… Ask “so what happens?” after every beat.",
+    blank: "Start from nothing. Aim for 8–25 hooks in a strict, natural order you never have to guess.",
+    home: "Spatial-coordinate palace (Bainbridge 2021): walk your actual home blindfolded — focus on turns, heights, and reach rather than colors.",
+    lukasa: "Lynne Kelly's tactile memory board: replace these 8 placeholders with real objects sitting left-to-right on your actual desk so you can touch them as you study.",
+    walk: "List the stops of a real walk in strict footstep order — focus on crossings, slopes, sounds, and turns.",
+    ritual: "List the steps of a habit your hands already know in strict doing-order (coffee, workout, recipe).",
+    chain: "Every hook must force the next: ask “so what happens immediately after?” on every beat.",
+};
+
+const TEMPLATES = {
+    home: {
+        name: "My Home (Spatial Route)",
+        intro: "Eight fixed coordinates through my own home in strict walking order — no visual details needed.",
+        hooks: [
+            { label: "front lock", type: "motion", enact: "Twist thumb and forefinger like turning your key.", beatText: "At the entry, you turn the front lock and push inside." },
+            { label: "shoe mat", type: "touch", enact: "Step firmly with one foot.", beatText: "Immediately inside, your feet step onto the rough shoe mat." },
+            { label: "hall switch", type: "spatial", enact: "Tap shoulder-height to your side.", beatText: "Just past the mat on the wall sits the hall switch." },
+            { label: "kitchen counter", type: "touch", enact: "Rest both palms flat on a surface.", beatText: "Walk straight ahead until your hands meet the hard edge of the kitchen counter." },
+            { label: "sink tap", type: "motion", enact: "Lift one wrist like opening a faucet.", beatText: "Along the counter to the left, you lift the sink tap." },
+            { label: "fridge handle", type: "touch", enact: "Pull back firmly against resistance.", beatText: "Turn away from the sink and tug the heavy seal of the fridge handle." },
+            { label: "living room chair", type: "spatial", enact: "Press your back into your seat.", beatText: "Step into the main room and drop into your living room chair." },
+            { label: "bedroom door", type: "logic", enact: "Pull a handle shut.", beatText: "Finally, follow the wall down the hall to close the bedroom door." },
+        ],
+    },
+    lukasa: {
+        name: "My Desk Lukasa",
+        intro: "Eight real, touchable objects ordered strictly left-to-right across my desk — touch each one as you encode.",
+        hooks: [
+            { label: "far-left corner", type: "spatial", enact: "Touch the far-left edge of your desk.", beatText: "Start at the far-left corner where your hand meets the cold desk edge." },
+            { label: "lamp base", type: "touch", enact: "Tap the base of your desk lamp.", beatText: "Slide right from the corner until your knuckles bump the lamp base." },
+            { label: "notebook", type: "touch", enact: "Press flat on your notebook cover.", beatText: "Next to the lamp sits your closed notebook, square and flat." },
+            { label: "keyboard", type: "motion", enact: "Tap the spacebar twice.", beatText: "Center-front, your fingers land on the home row of the keyboard." },
+            { label: "mouse", type: "motion", enact: "Click once firmly.", beatText: "Immediately right of the keyboard, your palm cups the mouse." },
+            { label: "coaster", type: "touch", enact: "Set a knuckle down in the center of your coaster.", beatText: "Above the mouse rests the coaster where your mug always lands." },
+            { label: "pen cup", type: "sound", enact: "Tap a pen or finger against a cup.", beatText: "Further right stands the pen cup, rattling when you grab a pen." },
+            { label: "right edge", type: "spatial", enact: "Slide your hand off the right edge of the desk.", beatText: "Finally you reach the right edge, marking the end of the board." },
+        ],
+    },
+    walk: {
+        name: "My Regular Walk",
+        intro: "Six reliable physical stops along a route my feet already know.",
+        hooks: [
+            { label: "front steps", type: "motion", enact: "Tap two quick footsteps.", beatText: "You leave home by going down the front steps." },
+            { label: "mailbox", type: "touch", enact: "Mime pulling a latch open.", beatText: "At the bottom of the steps you pass the metal mailbox." },
+            { label: "corner curb", type: "spatial", enact: "Turn your shoulders 90 degrees.", beatText: "Walk to the corner curb and make your usual turn." },
+            { label: "crossing button", type: "motion", enact: "Press one thumb firmly forward.", beatText: "At the busy road, you push the crossing button and wait for the tick." },
+            { label: "bakery vent", type: "smell", enact: "Take one deep breath in.", beatText: "Past the crossing, warm air blows from the bakery vent." },
+            { label: "park bench", type: "touch", enact: "Rest both hands on your knees.", beatText: "Finally you reach the slats of the park bench and pause." },
+        ],
+    },
+    ritual: {
+        name: "My Morning Ritual",
+        intro: "Six doing-order steps my hands already know by heart.",
+        hooks: [
+            { label: "kettle lid", type: "motion", enact: "Flip a thumb up.", beatText: "First you pop open the kettle lid to fill it." },
+            { label: "water stream", type: "sound", enact: "Hold one hand steady as if feeling weight grow.", beatText: "Next the water stream makes the kettle heavier in your hand." },
+            { label: "power switch", type: "sound", enact: "Click one finger down.", beatText: "Set it on the base and press the power switch until it snaps." },
+            { label: "coffee tin", type: "smell", enact: "Twist a lid open.", beatText: "While it heats, you pry open the coffee tin." },
+            { label: "spoon", type: "motion", enact: "Stir two small circles in the air.", beatText: "Because the tin is open, you scoop and stir with a spoon." },
+            { label: "first sip", type: "touch", enact: "Lift a hand toward your chin.", beatText: "Finally the boil finishes and you take the hot first sip." },
+        ],
+    },
+    chain: {
+        name: "My Consequence Chain",
+        intro: "Six beats where every stop strictly forces the next.",
+        hooks: [
+            { label: "power cut", type: "logic", enact: "Snap your fingers once.", beatText: "A sudden power cut kills the room, so you stop what you're doing." },
+            { label: "flashlight", type: "motion", enact: "Slide a thumb switch forward.", beatText: "Because of the power cut, you fumble for a flashlight and click it on." },
+            { label: "fuse box", type: "spatial", enact: "Pull open a small metal door.", beatText: "The flashlight guides you down the hall to the fuse box." },
+            { label: "breaker", type: "motion", enact: "Flip one finger firmly sideways.", beatText: "Inside the box, one tripped breaker demands to be pushed back." },
+            { label: "fridge hum", type: "sound", enact: "Nod once as the machine restarts.", beatText: "Flipping the breaker forces the fridge hum to roar back to life." },
+            { label: "clock", type: "logic", enact: "Tap your wrist twice.", beatText: "Now that power is back, the blinking clock must be reset to finish." },
+        ],
+    },
 };
 
 const TYPE_OPTIONS = Object.entries(HOOK_TYPES)
@@ -76,36 +153,54 @@ const hooksEl = document.getElementById("hooks");
 const params = new URLSearchParams(location.search);
 const editId = params.get("edit");
 
+function updateAllBeatCoaches() {
+    const rows = [...hooksEl.querySelectorAll(".hookrow")];
+    rows.forEach((row, i) => {
+        const label = row.querySelector(".h-label").value.trim();
+        const beatText = row.querySelector(".h-beat").value;
+        const prevLabel = i > 0 ? rows[i - 1].querySelector(".h-label").value.trim() : "";
+        const coachEl = row.querySelector(".beat-coach");
+        renderCoachFeedback(coachEl, analyzeBeat(beatText, label, prevLabel, i));
+    });
+}
+
 function addHookRow(data = {}) {
     const row = document.createElement("div");
     row.className = "hookrow";
     row.innerHTML = `
       <span class="hooknum dim">·</span>
       <div class="body">
-        <div class="toolbar" style="margin:0 0 .25rem">
+        <div class="toolbar" style="margin:0 0 .35rem">
           <input type="text" class="h-label" placeholder="Hook word (e.g. kettle)"
-                 value="${escapeHtml(data.label || "")}" style="max-width:14rem">
-          <select class="h-type">${TYPE_OPTIONS}</select>
+                 value="${escapeHtml(data.label || "")}" style="max-width:13.5rem">
+          <select class="h-type" style="width:auto">${TYPE_OPTIONS}</select>
           <span class="spacer"></span>
           <button type="button" class="ghost h-up" title="Move up">↑</button>
           <button type="button" class="ghost h-down" title="Move down">↓</button>
           <button type="button" class="ghost h-del" title="Remove">✕</button>
         </div>
         <textarea class="h-beat" rows="2"
-          placeholder="One story sentence containing the hook word — sound, feel, smell, action, or cause.">${escapeHtml(data.beatText || "")}</textarea>
+          placeholder="One non-visual beat containing the hook word — position, action, sound, feel, or cause.">${escapeHtml(data.beatText || "")}</textarea>
+        <input type="text" class="h-enact" style="margin-top:.35rem;font-size:.86rem"
+               placeholder="Optional physical gesture (Enactment Effect), e.g. Tap your pocket once"
+               value="${escapeHtml(data.enact || "")}">
+        <div class="coach beat-coach" role="status"></div>
       </div>`;
     if (data.type) row.querySelector(".h-type").value = data.type;
-    row.querySelector(".h-del").onclick = () => { row.remove(); renumber(); };
+    row.querySelector(".h-del").onclick = () => { row.remove(); renumber(); updateAllBeatCoaches(); };
     row.querySelector(".h-up").onclick = () => {
         if (row.previousElementSibling) hooksEl.insertBefore(row, row.previousElementSibling);
-        renumber();
+        renumber(); updateAllBeatCoaches();
     };
     row.querySelector(".h-down").onclick = () => {
         if (row.nextElementSibling) hooksEl.insertBefore(row.nextElementSibling, row);
-        renumber();
+        renumber(); updateAllBeatCoaches();
     };
+    row.querySelector(".h-label").addEventListener("input", updateAllBeatCoaches);
+    row.querySelector(".h-beat").addEventListener("input", updateAllBeatCoaches);
     hooksEl.appendChild(row);
     renumber();
+    updateAllBeatCoaches();
     return row;
 }
 
@@ -120,12 +215,29 @@ document.getElementById("add-hook").onclick = () => {
     row.querySelector(".h-label").focus();
 };
 
-document.getElementById("p-scaffold").onchange = (e) => {
+const scaffoldSel = document.getElementById("p-scaffold");
+scaffoldSel.onchange = (e) => {
     document.getElementById("scaffold-tip").textContent = SCAFFOLD_TIPS[e.target.value];
 };
 document.getElementById("scaffold-tip").textContent = SCAFFOLD_TIPS.blank;
 
-/* Beat text → safe HTML with the hook word wrapped in <em>. */
+document.getElementById("load-template").onclick = () => {
+    const key = scaffoldSel.value;
+    const tpl = TEMPLATES[key];
+    if (!tpl) {
+        document.getElementById("save-msg").textContent = "Pick a template from the dropdown first.";
+        return;
+    }
+    const existingRows = hooksEl.querySelectorAll(".hookrow");
+    const hasContent = [...existingRows].some((r) => r.querySelector(".h-label").value.trim() || r.querySelector(".h-beat").value.trim());
+    if (hasContent && !confirm("Replace the current hooks with this starter template?")) return;
+    if (!document.getElementById("p-name").value.trim()) document.getElementById("p-name").value = tpl.name;
+    if (!document.getElementById("p-intro").value.trim()) document.getElementById("p-intro").value = tpl.intro;
+    hooksEl.innerHTML = "";
+    tpl.hooks.forEach((h) => addHookRow(h));
+    document.getElementById("save-msg").textContent = `Loaded “${tpl.name}” — customize any stop to match your real life!`;
+};
+
 function beatToHtml(beatText, label) {
     let html = escapeHtml(beatText.trim());
     const safeLabel = escapeHtml(label.trim());
@@ -138,7 +250,6 @@ function beatToHtml(beatText, label) {
     return html;
 }
 
-/* Reverse: stored beat HTML → plain text for editing. */
 function beatToText(beatHtml) {
     const div = document.createElement("div");
     div.innerHTML = beatHtml;
@@ -155,13 +266,16 @@ document.getElementById("save").onclick = () => {
     for (let i = 0; i < rows.length; i++) {
         const label = rows[i].querySelector(".h-label").value.trim();
         const beatText = rows[i].querySelector(".h-beat").value.trim();
+        const enact = rows[i].querySelector(".h-enact").value.trim();
         const type = rows[i].querySelector(".h-type").value;
         if (!label || !beatText) { msg.textContent = `Hook ${i + 1} needs both a hook word and a story beat.`; return; }
         if (!beatText.toLowerCase().includes(label.toLowerCase())) {
             msg.textContent = `Hook ${i + 1}: the beat should contain the hook word “${label}”.`;
             return;
         }
-        hooks.push({ n: i + 1, label, type, beat: beatToHtml(beatText, label) });
+        const hook = { n: i + 1, label, type, beat: beatToHtml(beatText, label) };
+        if (enact) hook.enact = enact;
+        hooks.push(hook);
     }
     if (hooks.length < 3) { msg.textContent = "Add at least 3 hooks."; return; }
 
@@ -169,9 +283,7 @@ document.getElementById("save").onclick = () => {
     const intro = document.getElementById("p-intro").value.trim();
     if (editId) {
         const existing = store.customPalaces.find((p) => p.id === editId);
-        if (existing) {
-            Object.assign(existing, { name, intro, hooks });
-        }
+        if (existing) Object.assign(existing, { name, intro, hooks });
     } else {
         store.customPalaces.push({ id: "custom-" + uid(), name, intro, hooks });
     }
@@ -179,7 +291,6 @@ document.getElementById("save").onclick = () => {
     location.href = "palace.html";
 };
 
-/* Edit mode or fresh start */
 if (editId) {
     const palace = (loadStore().customPalaces || []).find((p) => p.id === editId);
     if (palace) {
@@ -187,7 +298,17 @@ if (editId) {
         document.getElementById("p-name").value = palace.name;
         document.getElementById("p-intro").value = palace.intro || "";
         palace.hooks.forEach((h) =>
-            addHookRow({ label: h.label, type: h.type, beatText: beatToText(h.beat) }));
+            addHookRow({ label: h.label, type: h.type, beatText: beatToText(h.beat), enact: h.enact || "" }));
+        const delBtn = document.getElementById("delete-palace");
+        delBtn.hidden = false;
+        delBtn.onclick = () => {
+            if (!confirm(`Delete custom palace “${palace.name}” and its lists? This cannot be undone.`)) return;
+            const s = loadStore();
+            s.customPalaces = (s.customPalaces || []).filter((p) => p.id !== editId);
+            s.lists = (s.lists || []).filter((l) => l.palaceId !== editId);
+            saveStore(s);
+            location.href = "palace.html";
+        };
     } else {
         addHookRow(); addHookRow(); addHookRow();
     }

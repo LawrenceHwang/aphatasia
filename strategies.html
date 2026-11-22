@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Strategy Workshop — Story Palace</title>
+<meta name="description" content="Interactive non-visual memory tools for aphantasia: abstract concepts (Feynman + wordplay), numbers and dates (Major System sentences), names ledger, and reading/study playbooks.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='48' fill='%23b4531f'/><text x='50' y='70' font-size='60' text-anchor='middle' fill='white' font-family='Georgia'>1</text></svg>">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div id="header"></div>
+
+<main class="wrap">
+  <h1 style="padding-top:2rem">Non-Visual Strategy Workshop</h1>
+  <p style="max-width:44em">Palaces are unbeatable for ordered lists — but real
+  life throws <strong>abstract concepts, numbers &amp; dates, people's names,
+  dense books, and autobiographical events</strong> at you too. Every tool below
+  bypasses visual imagery completely, using <strong>semantic logic, wordplay,
+  phonetic rules, physical enactment, and external recoding</strong>.</p>
+
+  <div class="tabs" id="ws-tabs">
+    <button type="button" data-tab="abstracts" aria-pressed="true">Abstract concepts</button>
+    <button type="button" data-tab="numbers" aria-pressed="false">Numbers &amp; dates</button>
+    <button type="button" data-tab="names" aria-pressed="false">Names &amp; people</button>
+    <button type="button" data-tab="playbooks" aria-pressed="false">Reading, study &amp; life playbooks</button>
+  </div>
+
+  <!-- ========== TAB 1: ABSTRACT CONCEPTS ========== -->
+  <section id="panel-abstracts">
+    <div class="card">
+      <h2>Abstract-to-Anchor Translator</h2>
+      <p class="muted" style="margin-top:0">Abstract terms (<em>epistemology, arbitrage, mitosis</em>) have no physical shape — which actually levels the playing field for aphantasia. Combine <strong>Feynman plain-language rules</strong> + <strong>sound/root wordplay</strong> + <strong>elaborative interrogation (&ldquo;why/how?&rdquo;)</strong>.</p>
+
+      <label for="ab-term">Abstract term or concept</label>
+      <input type="text" id="ab-term" placeholder="e.g. Opportunity cost, Cognitive dissonance, Recursion">
+
+      <label for="ab-rule">1. Plain-English rule (Feynman core — explain what it does in ≤15 simple words)</label>
+      <input type="text" id="ab-rule" placeholder="e.g. Choosing option A forces you to give up the value of option B.">
+
+      <label for="ab-hook">2. Wordplay, root, or concrete stand-in</label>
+      <input type="text" id="ab-hook" placeholder="e.g. dis-son-ance = two clashing sounds; or opportunity → open door">
+
+      <label for="ab-why">3. Elaborative interrogation — why does it matter, or give one concrete example</label>
+      <textarea id="ab-why" rows="2" placeholder="e.g. Spending Saturday working earns cash, so the opportunity cost is missing the hike."></textarea>
+      <div class="coach" id="ab-coach" role="status"></div>
+
+      <p class="toolbar">
+        <button class="primary" id="ab-save">Save concept</button>
+        <button id="ab-quiz-btn">▶ Quiz concepts (Elaborative recall)</button>
+        <span class="muted" id="ab-msg" role="status"></span>
+      </p>
+    </div>
+
+    <div id="ab-quiz-stage" hidden></div>
+
+    <div class="toolbar">
+      <h2 style="margin:0">Your concept deck <span class="chip" id="ab-count">0</span></h2>
+      <span class="spacer"></span>
+      <select id="ab-target-palace" style="width:auto;font-size:.86rem"></select>
+      <button id="ab-send-palace">Send deck → Story Palace list</button>
+    </div>
+    <div class="card" id="ab-list"></div>
+  </section>
+
+  <!-- ========== TAB 2: NUMBERS & DATES ========== -->
+  <section id="panel-numbers" hidden>
+    <div class="card">
+      <h2>Non-Visual Number &amp; Date Encoder (Phonetic Major System)</h2>
+      <p class="muted" style="margin-top:0">Instead of visualizing number shapes, map digits to <strong>consonant sounds</strong> (vowels are free fillers), pick concrete words for each 2-digit chunk, and weave them into <strong>one causal sentence or rhythmic chant</strong>. Research on verbal chunking and the Production Effect shows a single weird sentence holds 6–10 digits effortlessly.</p>
+
+      <details style="margin:.6rem 0">
+        <summary style="cursor:pointer;font-weight:600">Show the 0–9 phonetic sound code (takes 3 minutes to learn)</summary>
+        <div class="major-table" id="major-cheat"></div>
+      </details>
+
+      <div class="practice-options">
+        <div>
+          <label for="num-label">What is this number for?</label>
+          <input type="text" id="num-label" placeholder="e.g. French Revolution, Lock code, Pi">
+        </div>
+        <div>
+          <label for="num-digits">Digits to remember</label>
+          <input type="text" id="num-digits" placeholder="e.g. 1789 or 314159">
+        </div>
+      </div>
+
+      <div id="num-chunks-wrap" hidden>
+        <label>Tap one word per digit chunk to assemble your word chain:</label>
+        <div class="major-chunks" id="num-chunks"></div>
+        <p class="muted" style="font-size:.86rem;margin:.3rem 0">Selected words: <strong id="num-selected-words">—</strong></p>
+      </div>
+
+      <label for="num-sentence">Weave the words into one causal sentence or rhythmic chant</label>
+      <textarea id="num-sentence" rows="2" placeholder="e.g. For 1789 (duck + fob): The duck steals the king's key fob to launch the French Revolution."></textarea>
+      <div class="coach" id="num-coach" role="status"></div>
+
+      <p class="toolbar">
+        <button class="primary" id="num-save">Save number</button>
+        <button id="num-quiz-btn">▶ Quiz my numbers</button>
+        <span class="muted" id="num-msg" role="status"></span>
+      </p>
+    </div>
+
+    <div id="num-quiz-stage" hidden></div>
+
+    <h2>Your number vault <span class="chip" id="num-count">0</span></h2>
+    <div class="card" id="num-list"></div>
+  </section>
+
+  <!-- ========== TAB 3: NAMES & PEOPLE ========== -->
+  <section id="panel-names" hidden>
+    <div class="card">
+      <h2>Names-to-Facts Ledger (3-Step Verbal Anchor)</h2>
+      <p class="muted" style="margin-top:0">Without a mind's eye, you can't stick a visual nametag on a mental face. Instead, bind a person's name to <strong>context + wordplay/rhyme + one semantic fact</strong> in a single spoken sentence — and write it down immediately to offload working memory.</p>
+
+      <div class="practice-options">
+        <div>
+          <label for="nm-name">Person's name</label>
+          <input type="text" id="nm-name" placeholder="e.g. Maya Chen">
+        </div>
+        <div>
+          <label for="nm-context">Context (where/how you met)</label>
+          <input type="text" id="nm-context" placeholder="e.g. Thursday climbing gym">
+        </div>
+      </div>
+
+      <div class="practice-options">
+        <div>
+          <label for="nm-cue">Sound / rhyme / alliteration cue</label>
+          <input type="text" id="nm-cue" placeholder="e.g. Maya rhymes with higher">
+        </div>
+        <div>
+          <label for="nm-fact">One memorable fact or role</label>
+          <input type="text" id="nm-fact" placeholder="e.g. Builds weather balloons">
+        </div>
+      </div>
+
+      <label for="nm-bridge">One causal/verbal bridge sentence (say it aloud once!)</label>
+      <textarea id="nm-bridge" rows="2" placeholder="e.g. At the climbing gym, Maya goes higher than everyone because she launches weather balloons."></textarea>
+
+      <p class="toolbar">
+        <button class="primary" id="nm-save">Save to ledger</button>
+        <button id="nm-quiz-btn">▶ Quiz names (both directions)</button>
+        <span class="muted" id="nm-msg" role="status"></span>
+      </p>
+    </div>
+
+    <div id="nm-quiz-stage" hidden></div>
+
+    <h2>People in your ledger <span class="chip" id="nm-count">0</span></h2>
+    <div class="card" id="nm-list"></div>
+  </section>
+
+  <!-- ========== TAB 4: PLAYBOOKS ========== -->
+  <section id="panel-playbooks" hidden>
+    <div class="card">
+      <h3>1. Reading Fiction &amp; Non-Fiction Without a Mind's Movie</h3>
+      <p>Cognitive reading studies show aphantasic readers recall explicit facts well, while visual-simulation prompts (&ldquo;picture the room&rdquo;) slow them down or obscure character subtext. Shift from mental cinema to <strong>explicit structure and Theory-of-Mind logic</strong>:</p>
+      <ul style="padding-left:1.2rem">
+        <li><strong>Skim visual-only scenery; focus on action, dialogue, and stakes.</strong> Treat character motivation as a logic puzzle: <em>What do they want? What blocks them? What did their exact phrasing reveal?</em></li>
+        <li><strong>Externalize cast &amp; causality.</strong> Keep a 5-line running ledger in the margins or a notes app so working memory never drops who is allied with whom.</li>
+        <li><strong>Summarize aloud after each chapter</strong> in 2 causal sentences (<em>X happened, which forced Y</em>).</li>
+      </ul>
+      <div class="template-box" id="tpl-reading">Book / Article:
+Cast &amp; Rules: [Name — role / goal / tension]
+Causal Chain:
+1. [Trigger event] → forced → [Reaction]
+2. [Turning point] → changed → [New rule/stake]
+Key Takeaway (plain English):</div>
+      <button type="button" class="chip-btn copy-tpl" data-tpl="tpl-reading">Copy reading template</button>
+      <span class="muted copy-status" style="font-size:.82rem;margin-left:.4rem"></span>
+    </div>
+
+    <div class="card">
+      <h3>2. High-Utility Exam &amp; Technical Study Loop</h3>
+      <p>Large-scale educational reviews and 2025 aphantasia student studies point to four top imagery-free study engines:</p>
+      <ol style="padding-left:1.2rem">
+        <li><strong>Elaborative Interrogation:</strong> After every key fact, force yourself to answer <em>&ldquo;Why is this true, and what would break if it weren't?&rdquo;</em></li>
+        <li><strong>Feynman Aloud (Production Effect):</strong> Close your notes and teach the idea out loud to an empty chair in plain speech. Every stumble shows an exact gap.</li>
+        <li><strong>Enactment + External Diagrams as Logic:</strong> Translate visual diagrams into numbered step-by-step causal chains, or trace processes physically with your hands.</li>
+        <li><strong>Spaced Retrieval:</strong> Test yourself at expanding intervals (10 min → 1 day → 3 days → 7 days) using Story Palace's Smart Review or exported Anki cards.</li>
+      </ol>
+    </div>
+
+    <div class="card">
+      <h3>3. Autobiographical &amp; Life-Event Anchoring (Episodic Ledger / SDAM Support)</h3>
+      <p>Research by Monzel et al. (2024–2025) and Dawes et al. (2020) shows aphantasia often pairs with lighter episodic sensory replay — memories are stored as a <strong>factual ledger</strong> rather than a mental video. External recoding turns this into a durable, searchable life archive:</p>
+      <ul style="padding-left:1.2rem">
+        <li><strong>Record the 4 factual anchors right after meaningful days:</strong> <em>Where · Who · What changed/surprised me · One concrete quote or physical detail.</em></li>
+        <li><strong>Pair photos with a 1-sentence factual caption</strong> — Bainbridge's lab showed aphantasics recognize pictures well, so a photo + factual caption unlocks the whole event without needing mental replay.</li>
+      </ul>
+      <div class="template-box" id="tpl-life">Date &amp; Place:
+Who was there:
+What actually happened (3 bullet facts):
+One quote, joke, or concrete physical detail:
+Why this day mattered / how it felt:</div>
+      <button type="button" class="chip-btn copy-tpl" data-tpl="tpl-life">Copy event-ledger template</button>
+      <span class="muted copy-status" style="font-size:.82rem;margin-left:.4rem"></span>
+    </div>
+
+    <div class="card">
+      <h3>4. Build a Physical Lukasa / Desk Memory Board (Lynne Kelly Method)</h3>
+      <p>Memory researcher <strong>Dr. Lynne Kelly</strong> (who has aphantasia herself) demonstrated that Indigenous oral cultures stored encyclopedias of knowledge on handheld tactile boards (<em>lukasa</em>) and physical landscapes (<em>songlines</em>) — zero visual imagination needed:</p>
+      <ul style="padding-left:1.2rem">
+        <li><strong>Desk Lukasa:</strong> Pick 8–12 fixed objects on your desk in strict left-to-right order (lamp base → pen cup → mug coaster → keyboard edge → notebook spine…). Touch each object while speaking the fact assigned to it.</li>
+        <li><strong>Index-Card / Bead Board:</strong> Glue simple geometric shapes, buttons, or colored dots onto a piece of cardboard (2025 <em>Journal of Vision</em> research confirms simple symbols beat rich photos for aphantasic recall). Run your finger across each marker as you recite.</li>
+        <li>You can digitize your physical board using the <a href="builder.html">Palace Builder's Desk Lukasa template</a> and practice it in the <strong>Lukasa Spatial Map</strong> view!</li>
+      </ul>
+    </div>
+  </section>
+</main>
+
+<div id="footer"></div>
+<script src="assets/palaces.js"></script>
+<script src="assets/app.js"></script>
+<script>
+"use strict";
+document.getElementById("header").outerHTML = renderHeader("strategies.html");
+document.getElementById("footer").outerHTML = renderFooter();
+
+/* ---- Tabs ---- */
+const TABS = ["abstracts", "numbers", "names", "playbooks"];
+function openTab(name) {
+    TABS.forEach((t) => {
+        document.getElementById("panel-" + t).hidden = t !== name;
+    });
+    document.querySelectorAll("#ws-tabs button").forEach((b) =>
+        b.setAttribute("aria-pressed", String(b.dataset.tab === name)));
+}
+document.querySelectorAll("#ws-tabs button").forEach((b) => {
+    b.onclick = () => openTab(b.dataset.tab);
+});
+
+/* =====================================================================
+   TAB 1: ABSTRACT CONCEPTS
+   ===================================================================== */
+
+function populateTargetPalaces() {
+    const store = loadStore();
+    const sel = document.getElementById("ab-target-palace");
+    sel.innerHTML = allPalaces(store)
+        .map((p) => `<option value="${escapeHtml(p.id)}">${escapeHtml(p.name)} (${p.hooks.length} hooks)</option>`)
+        .join("");
+}
+
+document.getElementById("ab-why").addEventListener("input", () => {
+    const term = document.getElementById("ab-term").value.trim();
+    const hook = document.getElementById("ab-hook").value.trim();
+    const why = document.getElementById("ab-why").value;
+    renderCoachFeedback(document.getElementById("ab-coach"), analyzeLink(why, term, hook || ""));
+});
+
+function renderAbstracts() {
+    const items = loadStore().workshop.abstracts || [];
+    document.getElementById("ab-count").textContent = items.length;
+    const el = document.getElementById("ab-list");
+    el.innerHTML = items.length
+        ? items.slice().reverse().map((c) => `
+          <div class="hookrow">
+            <div class="body">
+              <span class="hookname">${escapeHtml(c.term)}</span>
+              ${c.hook ? `<span class="chip accent">hook: ${escapeHtml(c.hook)}</span>` : ""}
+              <p style="margin:.25rem 0"><strong>Rule:</strong> ${escapeHtml(c.rule)}</p>
+              ${c.why ? `<p class="story" style="margin:0">${escapeHtml(c.why)}</p>` : ""}
+            </div>
+            <button class="ghost" data-del-ab="${escapeHtml(c.id)}" title="Delete">✕</button>
+          </div>`).join("")
+        : '<p class="muted" style="margin:0">No concepts saved yet — translate an abstract study term above to start your deck.</p>';
+
+    el.querySelectorAll("button[data-del-ab]").forEach((b) => {
+        b.onclick = () => {
+            const s = loadStore();
+            s.workshop.abstracts = s.workshop.abstracts.filter((x) => x.id !== b.dataset.delAb);
+            saveStore(s);
+            renderAbstracts();
+        };
+    });
+}
+
+document.getElementById("ab-save").onclick = () => {
+    const term = document.getElementById("ab-term").value.trim();
+    const rule = document.getElementById("ab-rule").value.trim();
+    const hook = document.getElementById("ab-hook").value.trim();
+    const why = document.getElementById("ab-why").value.trim();
+    const msg = document.getElementById("ab-msg");
+    if (!term || !rule) { msg.textContent = "Enter at least the term and its plain-English rule."; return; }
+    const s = loadStore();
+    s.workshop.abstracts.push({
+        id: uid(), term, rule, hook, why,
+        stats: { ok: 0, total: 0 }, createdAt: new Date().toISOString(),
+    });
+    saveStore(s);
+    ["ab-term", "ab-rule", "ab-hook", "ab-why"].forEach((id) => { document.getElementById(id).value = ""; });
+    renderCoachFeedback(document.getElementById("ab-coach"), null);
+    msg.textContent = `Saved “${term}”.`;
+    renderAbstracts();
+};
+
+document.getElementById("ab-send-palace").onclick = () => {
+    const s = loadStore();
+    const items = s.workshop.abstracts || [];
+    const msg = document.getElementById("ab-msg");
+    if (!items.length) { msg.textContent = "Add at least one concept first."; return; }
+    const palaceId = document.getElementById("ab-target-palace").value;
+    const palace = getPalace(s, palaceId);
+    if (!palace) return;
+    const entries = {};
+    items.slice(0, palace.hooks.length).forEach((c, i) => {
+        const h = palace.hooks[i];
+        const bridge = [
+            `At ${h.label}: ${c.term} means ${c.rule}`,
+            c.hook ? `(Hook: ${c.hook}).` : "",
+            c.why || "",
+        ].filter(Boolean).join(" ");
+        entries[h.n] = { item: c.term, assoc: bridge };
+    });
+    const list = {
+        id: uid(),
+        palaceId: palace.id,
+        name: `Abstract Concepts (${new Date().toLocaleDateString()})`,
+        entries,
+        stats: { perHook: {}, sessions: 0 },
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+    };
+    s.lists.push(list);
+    saveStore(s);
+    location.href = `palace.html?p=${encodeURIComponent(palace.id)}&l=${encodeURIComponent(list.id)}`;
+};
+
+document.getElementById("ab-quiz-btn").onclick = () => {
+    const stage = document.getElementById("ab-quiz-stage");
+    const items = (loadStore().workshop.abstracts || []).slice();
+    stage.hidden = false;
+    if (items.length < 2) {
+        stage.innerHTML = '<div class="callout">Save at least 2 concepts to start an elaborative recall quiz.</div>';
+        return;
+    }
+    items.sort((a, b) => (isSrsDue(a.stats) ? 0 : 1) - (isSrsDue(b.stats) ? 0 : 1));
+    let idx = 0, ok = 0;
+    function step() {
+        if (idx >= items.length) {
+            stage.innerHTML = `<div class="card practice-stage">
+              <h3 style="margin-top:0">Concept quiz complete: ${ok}/${items.length}</h3>
+              <button class="primary" id="ab-q-again">Quiz again</button>
+              <button id="ab-q-close">Close</button>
+            </div>`;
+            document.getElementById("ab-q-again").onclick = () => { idx = 0; ok = 0; step(); };
+            document.getElementById("ab-q-close").onclick = () => { stage.hidden = true; };
+            return;
+        }
+        const c = items[idx];
+        const askTerm = idx % 2 === 1;
+        stage.innerHTML = `<div class="card practice-stage">
+          <div class="progressbar"><div style="width:${(idx / items.length) * 100}%"></div></div>
+          <p class="muted" style="margin:0">${idx + 1} / ${items.length}</p>
+          <p class="beat">${askTerm
+              ? `Which concept fits this rule?<br><strong>“${escapeHtml(c.rule)}”</strong>`
+              : `Explain <strong>${escapeHtml(c.term)}</strong> aloud in plain English — and why it matters.`}</p>
+          <div id="ab-ans"><button class="primary" id="ab-rev">Reveal</button></div>
+        </div>`;
+        document.getElementById("ab-rev").onclick = () => {
+            document.getElementById("ab-ans").innerHTML = `
+              <div class="reveal-box">
+                <strong>${escapeHtml(c.term)}</strong><br>
+                <span>${escapeHtml(c.rule)}</span>
+                ${c.hook ? `<br><small class="muted">Hook: ${escapeHtml(c.hook)}</small>` : ""}
+                ${c.why ? `<br><small class="muted">${escapeHtml(c.why)}</small>` : ""}
+              </div>
+              <button class="bad" id="ab-miss">✗ Missed</button>
+              <button class="good" id="ab-ok">✓ Got it</button>`;
+            const done = (good) => {
+                const s = loadStore();
+                const sc = s.workshop.abstracts.find((x) => x.id === c.id);
+                if (sc) { sc.stats = updateSrsStats(sc.stats, good ? "good" : "miss"); saveStore(s); }
+                if (good) ok++;
+                idx++; step();
+            };
+            document.getElementById("ab-ok").onclick = () => done(true);
+            document.getElementById("ab-miss").onclick = () => done(false);
+        };
+    }
+    step();
+    stage.scrollIntoView({ behavior: "smooth" });
+};
+
+/* =====================================================================
+   TAB 2: NUMBERS & DATES (MAJOR SYSTEM)
+   ===================================================================== */
+
+document.getElementById("major-cheat").innerHTML = MAJOR_DIGITS.map((m) =>
+    `<div class="major-cell"><strong>${m.d}</strong> ${escapeHtml(m.sounds)}<br><small class="muted">${escapeHtml(m.mnemonic)}</small></div>`
+).join("");
+
+let currentChunks = [];
+let pickedWords = [];
+
+function renderMajorChunks() {
+    const digits = document.getElementById("num-digits").value.replace(/\D/g, "");
+    const wrap = document.getElementById("num-chunks-wrap");
+    if (!digits) { wrap.hidden = true; currentChunks = []; pickedWords = []; return; }
+    wrap.hidden = false;
+    currentChunks = majorEncodeDigits(digits);
+    pickedWords = currentChunks.map((c) => c.words[0]);
+    const container = document.getElementById("num-chunks");
+    container.innerHTML = currentChunks.map((chunk, ci) => `
+      <div class="major-chunk">
+        <div class="mc-num">${escapeHtml(chunk.digits)}</div>
+        <div class="frames" style="margin:0">
+          ${chunk.words.map((w, wi) => `
+            <button type="button" class="chip-btn ${wi === 0 ? "selected" : ""}" data-ci="${ci}" data-w="${escapeHtml(w)}">${escapeHtml(w)}</button>
+          `).join("")}
+        </div>
+      </div>`).join("");
+    updateSelectedWordsLabel();
+
+    container.querySelectorAll("button[data-ci]").forEach((btn) => {
+        btn.onclick = () => {
+            const ci = Number(btn.dataset.ci);
+            pickedWords[ci] = btn.dataset.w;
+            container.querySelectorAll(`button[data-ci="${ci}"]`).forEach((b) => b.classList.remove("selected"));
+            btn.classList.add("selected");
+            updateSelectedWordsLabel();
+            updateNumCoach();
+        };
+    });
+}
+
+function updateSelectedWordsLabel() {
+    document.getElementById("num-selected-words").textContent = pickedWords.join(" ⟶ ") || "—";
+}
+
+function updateNumCoach() {
+    const s = document.getElementById("num-sentence").value;
+    const first = pickedWords[0] || "";
+    const last = pickedWords[pickedWords.length - 1] || "";
+    renderCoachFeedback(document.getElementById("num-coach"), analyzeLink(s, first, pickedWords.length > 1 ? last : ""));
+}
+
+document.getElementById("num-digits").addEventListener("input", renderMajorChunks);
+document.getElementById("num-sentence").addEventListener("input", updateNumCoach);
+
+function renderNumbers() {
+    const list = loadStore().workshop.numbers || [];
+    document.getElementById("num-count").textContent = list.length;
+    const el = document.getElementById("num-list");
+    el.innerHTML = list.length
+        ? list.slice().reverse().map((n) => `
+          <div class="hookrow">
+            <div class="body">
+              <span class="hookname">${escapeHtml(n.label)}</span>
+              <span class="chip accent" style="font-family:var(--mono)">${escapeHtml(n.digits)}</span>
+              <span class="chip">${escapeHtml((n.words || []).join(" · "))}</span>
+              <p class="story" style="margin:.25rem 0 0">${escapeHtml(n.sentence)}</p>
+            </div>
+            <button class="ghost" data-del-num="${escapeHtml(n.id)}" title="Delete">✕</button>
+          </div>`).join("")
+        : '<p class="muted" style="margin:0">No numbers saved yet — enter a date, PIN, or constant above.</p>';
+
+    el.querySelectorAll("button[data-del-num]").forEach((b) => {
+        b.onclick = () => {
+            const s = loadStore();
+            s.workshop.numbers = s.workshop.numbers.filter((x) => x.id !== b.dataset.delNum);
+            saveStore(s);
+            renderNumbers();
+        };
+    });
+}
+
+document.getElementById("num-save").onclick = () => {
+    const label = document.getElementById("num-label").value.trim();
+    const digits = document.getElementById("num-digits").value.replace(/\D/g, "");
+    const sentence = document.getElementById("num-sentence").value.trim();
+    const msg = document.getElementById("num-msg");
+    if (!label || !digits || !sentence) {
+        msg.textContent = "Fill in the label, digits, and your phonetic sentence.";
+        return;
+    }
+    const s = loadStore();
+    s.workshop.numbers.push({
+        id: uid(), label, digits, words: pickedWords.slice(), sentence,
+        stats: { ok: 0, total: 0 }, createdAt: new Date().toISOString(),
+    });
+    saveStore(s);
+    ["num-label", "num-digits", "num-sentence"].forEach((id) => { document.getElementById(id).value = ""; });
+    renderMajorChunks();
+    renderCoachFeedback(document.getElementById("num-coach"), null);
+    msg.textContent = `Saved “${label}” (${digits}).`;
+    renderNumbers();
+};
+
+document.getElementById("num-quiz-btn").onclick = () => {
+    const stage = document.getElementById("num-quiz-stage");
+    const items = (loadStore().workshop.numbers || []).slice();
+    stage.hidden = false;
+    if (!items.length) {
+        stage.innerHTML = '<div class="callout">Save at least 1 number to quiz yourself.</div>';
+        return;
+    }
+    let idx = 0, ok = 0;
+    function step() {
+        if (idx >= items.length) {
+            stage.innerHTML = `<div class="card practice-stage">
+              <h3 style="margin-top:0">Number recall: ${ok}/${items.length}</h3>
+              <button class="primary" id="nq-again">Quiz again</button>
+              <button id="nq-close">Close</button>
+            </div>`;
+            document.getElementById("nq-again").onclick = () => { idx = 0; ok = 0; step(); };
+            document.getElementById("nq-close").onclick = () => { stage.hidden = true; };
+            return;
+        }
+        const n = items[idx];
+        stage.innerHTML = `<div class="card practice-stage">
+          <div class="progressbar"><div style="width:${(idx / items.length) * 100}%"></div></div>
+          <p class="beat">What is the number for <strong>${escapeHtml(n.label)}</strong>?</p>
+          <p class="muted">Replay your Major System sentence aloud and decode the consonant sounds.</p>
+          <div id="nq-ans"><button class="primary" id="nq-rev">Reveal</button></div>
+        </div>`;
+        document.getElementById("nq-rev").onclick = () => {
+            document.getElementById("nq-ans").innerHTML = `
+              <div class="reveal-box">
+                <strong style="font-family:var(--mono);font-size:1.3rem">${escapeHtml(n.digits)}</strong><br>
+                <span class="chip">${escapeHtml((n.words || []).join(" ⟶ "))}</span><br>
+                <span class="muted">${escapeHtml(n.sentence)}</span>
+              </div>
+              <button class="bad" id="nq-miss">✗ Missed</button>
+              <button class="good" id="nq-ok">✓ Got it</button>`;
+            document.getElementById("nq-ok").onclick = () => { ok++; idx++; step(); };
+            document.getElementById("nq-miss").onclick = () => { idx++; step(); };
+        };
+    }
+    step();
+    stage.scrollIntoView({ behavior: "smooth" });
+};
+
+/* =====================================================================
+   TAB 3: NAMES & PEOPLE LEDGER
+   ===================================================================== */
+
+function renderNames() {
+    const list = loadStore().workshop.names || [];
+    document.getElementById("nm-count").textContent = list.length;
+    const el = document.getElementById("nm-list");
+    el.innerHTML = list.length
+        ? list.slice().reverse().map((p) => `
+          <div class="hookrow">
+            <div class="body">
+              <span class="hookname">${escapeHtml(p.name)}</span>
+              ${p.context ? `<span class="chip">${escapeHtml(p.context)}</span>` : ""}
+              ${p.cue ? `<span class="chip accent">${escapeHtml(p.cue)}</span>` : ""}
+              ${p.fact ? `<p style="margin:.2rem 0"><strong>Fact:</strong> ${escapeHtml(p.fact)}</p>` : ""}
+              ${p.bridge ? `<p class="story" style="margin:0">${escapeHtml(p.bridge)}</p>` : ""}
+            </div>
+            <button class="ghost" data-del-nm="${escapeHtml(p.id)}" title="Delete">✕</button>
+          </div>`).join("")
+        : '<p class="muted" style="margin:0">No people saved yet — log someone you want to remember above.</p>';
+
+    el.querySelectorAll("button[data-del-nm]").forEach((b) => {
+        b.onclick = () => {
+            const s = loadStore();
+            s.workshop.names = s.workshop.names.filter((x) => x.id !== b.dataset.delNm);
+            saveStore(s);
+            renderNames();
+        };
+    });
+}
+
+document.getElementById("nm-save").onclick = () => {
+    const name = document.getElementById("nm-name").value.trim();
+    const context = document.getElementById("nm-context").value.trim();
+    const cue = document.getElementById("nm-cue").value.trim();
+    const fact = document.getElementById("nm-fact").value.trim();
+    const bridge = document.getElementById("nm-bridge").value.trim();
+    const msg = document.getElementById("nm-msg");
+    if (!name || (!context && !fact)) {
+        msg.textContent = "Enter at least a name and either a context or a fact.";
+        return;
+    }
+    const s = loadStore();
+    s.workshop.names.push({
+        id: uid(), name, context, cue, fact, bridge,
+        stats: { ok: 0, total: 0 }, createdAt: new Date().toISOString(),
+    });
+    saveStore(s);
+    ["nm-name", "nm-context", "nm-cue", "nm-fact", "nm-bridge"].forEach((id) => { document.getElementById(id).value = ""; });
+    msg.textContent = `Saved ${name} to your ledger.`;
+    renderNames();
+};
+
+document.getElementById("nm-quiz-btn").onclick = () => {
+    const stage = document.getElementById("nm-quiz-stage");
+    const items = (loadStore().workshop.names || []).slice();
+    stage.hidden = false;
+    if (items.length < 2) {
+        stage.innerHTML = '<div class="callout">Save at least 2 people to run a name recall quiz.</div>';
+        return;
+    }
+    let idx = 0, ok = 0;
+    function step() {
+        if (idx >= items.length) {
+            stage.innerHTML = `<div class="card practice-stage">
+              <h3 style="margin-top:0">Name recall: ${ok}/${items.length}</h3>
+              <button class="primary" id="nmq-again">Quiz again</button>
+              <button id="nmq-close">Close</button>
+            </div>`;
+            document.getElementById("nmq-again").onclick = () => { idx = 0; ok = 0; step(); };
+            document.getElementById("nmq-close").onclick = () => { stage.hidden = true; };
+            return;
+        }
+        const p = items[idx];
+        const askName = idx % 2 === 0;
+        stage.innerHTML = `<div class="card practice-stage">
+          <div class="progressbar"><div style="width:${(idx / items.length) * 100}%"></div></div>
+          <p class="beat">${askName
+              ? `Who is this?<br><strong>${escapeHtml([p.context, p.fact].filter(Boolean).join(" · "))}</strong>`
+              : `What do you remember about <strong>${escapeHtml(p.name)}</strong>?`}</p>
+          <div id="nmq-ans"><button class="primary" id="nmq-rev">Reveal</button></div>
+        </div>`;
+        document.getElementById("nmq-rev").onclick = () => {
+            document.getElementById("nmq-ans").innerHTML = `
+              <div class="reveal-box">
+                <strong>${escapeHtml(p.name)}</strong> ${p.context ? `<span class="chip">${escapeHtml(p.context)}</span>` : ""}<br>
+                ${p.fact ? `<span>${escapeHtml(p.fact)}</span><br>` : ""}
+                ${p.cue ? `<small class="muted">Cue: ${escapeHtml(p.cue)}</small><br>` : ""}
+                ${p.bridge ? `<small class="muted">${escapeHtml(p.bridge)}</small>` : ""}
+              </div>
+              <button class="bad" id="nmq-miss">✗ Missed</button>
+              <button class="good" id="nmq-ok">✓ Got it</button>`;
+            document.getElementById("nmq-ok").onclick = () => { ok++; idx++; step(); };
+            document.getElementById("nmq-miss").onclick = () => { idx++; step(); };
+        };
+    }
+    step();
+    stage.scrollIntoView({ behavior: "smooth" });
+};
+
+/* =====================================================================
+   TAB 4: COPYABLE PLAYBOOK TEMPLATES
+   ===================================================================== */
+
+document.querySelectorAll("button.copy-tpl").forEach((btn) => {
+    btn.onclick = async () => {
+        const text = document.getElementById(btn.dataset.tpl).textContent;
+        const status = btn.nextElementSibling;
+        try {
+            await navigator.clipboard.writeText(text);
+            status.textContent = "Copied!";
+        } catch (_) {
+            status.textContent = "Select and copy the box above.";
+        }
+        setTimeout(() => { status.textContent = ""; }, 2000);
+    };
+});
+
+populateTargetPalaces();
+renderAbstracts();
+renderNumbers();
+renderNames();
+</script>
+</body>
+</html>
